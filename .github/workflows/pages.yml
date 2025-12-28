@@ -1,0 +1,26 @@
+name: Deploy versioned GitHub Pages
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Prepare Pages content
+        run: |
+          mkdir -p public/${GITHUB_REF_NAME}
+          cp index.html public/${GITHUB_REF_NAME}/index.html
+          cp index.html public/index.html
+          cp index.html public/latest/index.html || true
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
