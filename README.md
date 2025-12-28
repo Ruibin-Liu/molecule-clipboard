@@ -99,7 +99,7 @@ It uses **RDKit**, which is licensed under the **BSD License**.
 If you reference Molecule Clipboard in academic work, documentation, or supplementary material, please cite:
 
 > Molecule Clipboard — Browser‑based RDKit molecule inspection tool  
-> https://github.com/<your‑username>/molecule‑clipboard
+> https://github.com/Ruibin-Liu/molecule‑clipboard
 
 **Suggested BibTeX:**
 ```bibtex  
