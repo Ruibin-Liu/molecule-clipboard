@@ -1,5 +1,7 @@
 # Molecule Clipboard
 
+🔗 Live app: [https://ruibin-liu.github.io/molecule-clipboard/](https://ruibin-liu.github.io/molecule-clipboard/)
+
 **Molecule Clipboard** is a lightweight, browser‑based **RDKit** molecule inspector for **SMILES**, **MOL**, and **SDF** files.  
 It enables fast **molecule visualization**, **canonicalization**, and **physicochemical property calculation** directly in the browser, with **no installation** and **no data upload**.
 
@@ -43,6 +45,8 @@ This makes Molecule Clipboard suitable for **confidential, proprietary, or unpub
 ---
 
 ## 🚀 Usage
+
+### Option 0 — Just click: [https://ruibin-liu.github.io/molecule-clipboard/](https://ruibin-liu.github.io/molecule-clipboard/)
 
 ### Option 1 — Local
 1. Download `index.html`
