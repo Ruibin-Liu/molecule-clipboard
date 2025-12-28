@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -16,7 +15,7 @@
   <line x1='10' y1='16' x2='22' y2='10' stroke='white' stroke-width='2'/>
   <line x1='10' y1='16' x2='22' y2='22' stroke='white' stroke-width='2'/>
 </svg>">
-
+ 
 <style>
 :root {
   --bg: #f8fafc;
@@ -221,23 +220,35 @@ textarea:focus {
   border-color: var(--accent);
 }
 
-.controls {
-  margin-top: 0.75rem;
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
+  .controls {
+   margin-top: 0.75rem;
+   display: grid;
+   grid-template-columns: repeat(2, 1fr);
+   gap: 0.5rem;
+  }
 
-button {
-  appearance: none;
-  border: 1px solid var(--border);
-  background: #fff;
-  color: var(--text);
-  padding: 0.4rem 0.7rem;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
+  .controls button {
+   display: inline-flex;
+   align-items: center;
+   gap: 4px;
+  }
+
+  .controls button svg {
+   width: 14px;
+   height: 14px;
+  }
+
+ button {
+   appearance: none;
+   border: 1px solid var(--border);
+   background: #fff;
+   color: var(--text);
+   padding: 0.4rem 0.7rem;
+   border-radius: 8px;
+   font-size: 0.85rem;
+   cursor: pointer;
+   width: auto;
+ }
 
  button.primary {
    background: var(--accent);
@@ -265,15 +276,24 @@ button {
    border-color: #22c55e;
  }
 
-.drop {
-  margin-top: 0.75rem;
-  border: 1px dashed var(--border);
-  border-radius: 8px;
-  padding: 0.6rem;
-  font-size: 0.8rem;
-  color: var(--muted);
-  text-align: center;
-}
+  .drop {
+   margin-top: 0.75rem;
+   border: 1px dashed var(--border);
+   border-radius: 8px;
+   padding: 0.6rem;
+   font-size: 0.8rem;
+   color: var(--muted);
+   text-align: center;
+   margin-bottom: 1rem;
+  }
+
+  .separator {
+   margin-top: 0.75rem;
+   margin-bottom: 0.75rem;
+   text-align: center;
+   font-size: 0.75rem;
+   color: var(--muted);
+  }
 
 #error {
   margin-top: 0.75rem;
@@ -291,12 +311,18 @@ button {
   .grid { grid-template-columns: 1fr; }
 }
 
-svg {
-  max-width: 100%;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: #fff;
-}
+ #svg svg {
+   width: 100%;
+   max-width: 100%;
+   border: 1px solid var(--border);
+   border-radius: 6px;
+   background: #fff;
+   display: block;
+ }
+
+ #svg {
+   width: 100%;
+ }
 
 table {
   width: 100%;
@@ -340,7 +366,6 @@ details {
    border-top: 1px solid var(--border);
    background: #f8fafc;
  }
-
 
  .footer .content {
    max-width: 1100px;
@@ -408,14 +433,14 @@ details {
 <div class="panel">
   <textarea id="input" placeholder="Paste SMILES, MolBlock, or SDF here"></textarea>
 
+  <div class="separator">-- or --</div>
+
   <div class="drop" id="drop">
     Drag & drop MOL / SDF / TXT files here
   </div>
 
-  <div class="controls">
-    <button id="processBtn" class="primary" disabled>Loading RDKit…</button>
-    <button onclick="copyShareLink()">Copy link</button>
-    <button onclick="clearAll()">Clear</button>
+  <div style="display: flex;">
+    <button onclick="clearAll()" style="color: #b91c1c; border-color: #b91c1c;">Clear</button>
   </div>
 
   <div id="error"></div>
@@ -423,23 +448,52 @@ details {
 
 <div id="output" style="display:none">
 
-  <div class="panel grid">
-    <div>
-        <strong>Structure</strong><br><br>
-        <div id="svg"></div><br>
-        <button onclick="downloadSVG()">Download SVG</button>
-        <button onclick="downloadPNG()">Download PNG</button>
-        <button onclick="copySVG()">Copy SVG</button>
-      </div>
+   <div class="panel grid">
+     <div>
+         <strong>Structure</strong>
+         <div id="svg" style="margin-top:0.75rem; margin-bottom:0.75rem;"></div>
+         <div class="controls">
+           <button onclick="downloadSVG()">
+             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+               <polyline points="7,10 12,15 17,10"/>
+               <line x1="12" y1="15" x2="12" y2="3"/>
+             </svg>
+             Download SVG
+           </button>
+           <button onclick="downloadPNG()">
+             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+               <polyline points="7,10 12,15 17,10"/>
+               <line x1="12" y1="15" x2="12" y2="3"/>
+             </svg>
+             Download PNG
+           </button>
+           <button onclick="copySVG()">
+             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+             </svg>
+             Copy SVG
+           </button>
+           <button onclick="copyShareLink()">
+             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+               <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+               <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+             </svg>
+             Share link
+           </button>
+         </div>
+       </div>
 
-    <div>
-      <strong>Properties</strong>
-      <table id="props"></table>
+     <div>
+       <strong>Properties</strong>
+       <table id="props"></table>
 
-      <br>
-      <strong>Rules</strong>
-      <table id="rules"></table>
-    </div>
+       <br>
+       <strong>Rules</strong>
+       <table id="rules"></table>
+     </div>
   </div>
 
   <div class="panel">
@@ -479,19 +533,27 @@ details {
 <script>
 let rdkitModule = null;
 
- async function initRDKit() {
-   try {
-     rdkitModule = await initRDKitModule();
-     const btn = document.getElementById("processBtn");
-     btn.disabled = false;
-     btn.textContent = "Process";
-     btn.onclick = process;
-     displayVersion();
-     loadFromURL();
-   } catch(e) {
-     document.getElementById("error").textContent = "Failed to load RDKit: " + e;
-   }
- }
+  async function initRDKit() {
+    try {
+      rdkitModule = await initRDKitModule();
+      displayVersion();
+      loadFromURL();
+      setupAutoProcess();
+    } catch(e) {
+      document.getElementById("error").textContent = "Failed to load RDKit: " + e;
+    }
+  }
+
+  let debounceTimer;
+  function setupAutoProcess() {
+    const input = document.getElementById("input");
+    input.addEventListener("input", () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        process(true);
+      }, 500);
+    });
+  }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@rdkit/rdkit/dist/RDKit_minimal.js"></script>
 <script>initRDKit();</script>
