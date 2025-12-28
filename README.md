@@ -107,6 +107,6 @@ If you reference Molecule Clipboard in academic work, documentation, or suppleme
   title        = {Molecule Clipboard: Browser-Based RDKit Molecule Inspector},  
   author       = {Your Name},  
   year         = {2025},  
-  url          = {https://github.com/<your-username>/molecule-clipboard},  
+  url          = {https://github.com/Ruibin-Liu/molecule-clipboard},  
   note         = {Local, no-upload molecular inspection using RDKit.js}  
 }  
