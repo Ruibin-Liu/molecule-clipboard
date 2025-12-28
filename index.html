@@ -1,0 +1,1727 @@
+<html lang="en"><head>
+ <meta charset="utf-8">
+ <title>Molecule Clipboard</title>
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <meta name="theme-color" content="#2563eb">
+ <meta name="description" content="Molecule Clipboard is a browser-based RDKit tool for inspecting, canonicalizing, and sharing small molecules from SMILES, MOL, or SDF. Runs locally with no uploads.">
+ <meta name="keywords" content="RDKit, molecule inspector, SMILES viewer, cheminformatics, chemical structure, molecular properties, browser RDKit">
+ <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'&gt;
+  &lt;rect width='32' height='32' rx='6' fill='%232563eb'/&gt;
+  &lt;circle cx='10' cy='16' r='3' fill='white'/&gt;
+  &lt;circle cx='22' cy='10' r='3' fill='white'/&gt;
+  &lt;circle cx='22' cy='22' r='3' fill='white'/&gt;
+  &lt;line x1='10' y1='16' x2='22' y2='10' stroke='white' stroke-width='2'/&gt;
+  &lt;line x1='10' y1='16' x2='22' y2='22' stroke='white' stroke-width='2'/&gt;
+&lt;/svg&gt;">
+ 
+<style>
+:root {
+  --bg: #f8fafc;
+  --panel: #ffffff;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --muted: #64748b;
+  --accent: #2563eb;
+  --good: #166534;
+  --bad: #b91c1c;
+}
+
+ * { box-sizing: border-box; }
+
+ body {
+   margin: 0;
+   background: var(--bg);
+   color: var(--text);
+   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                Roboto, Helvetica, Arial, sans-serif;
+ }
+
+ .container {
+   max-width: 1100px;
+   margin: 2.5rem auto;
+   padding: 0 1.5rem;
+ }
+
+ header {
+   margin-bottom: 1.5rem;
+ }
+
+ h1 {
+   font-size: 1.5rem;
+   margin: 0;
+   font-weight: 600;
+ }
+
+ .subtitle {
+   color: var(--muted);
+   margin-top: 0.25rem;
+   font-size: 0.95rem;
+ }
+
+ .version {
+   color: var(--muted);
+   margin-top: 0.5rem;
+   font-size: 0.8rem;
+   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+ }
+
+ .badges {
+   margin-top: 0.75rem;
+   display: flex;
+   gap: 0.75rem;
+   flex-wrap: wrap;
+ }
+
+ .badge {
+   display: inline-flex;
+   align-items: center;
+   padding: 0.35rem 0.65rem;
+   border-radius: 6px;
+   background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+   color: var(--text);
+   font-size: 0.75rem;
+   font-weight: 500;
+   border: 1px solid var(--border);
+   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+   text-decoration: none;
+   transition: all 0.15s ease;
+ }
+
+ .badge:hover {
+   transform: translateY(-1px);
+   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+   border-color: var(--accent);
+ }
+
+ .badge svg {
+   width: 13px;
+   height: 13px;
+   margin-right: 5px;
+   border: none;
+   background: transparent;
+ }
+
+ .result-badge {
+   display: inline-block;
+   padding: 0.25rem 0.5rem;
+   border-radius: 4px;
+   font-size: 0.75rem;
+   font-weight: 500;
+ }
+
+ .result-badge.pass {
+   background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+   color: #166534;
+ }
+
+ .result-badge.fail {
+   background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+   color: #b91c1c;
+ }
+
+ .modal {
+   display: none;
+   position: fixed;
+   top: 0;
+   left: 0;
+   width: 100%;
+   height: 100%;
+   background: rgba(0,0,0,0.5);
+   z-index: 1000;
+ }
+
+ .modal-content {
+   position: relative;
+   width: 90%;
+   max-width: 900px;
+   max-height: 90%;
+   margin: 2rem auto;
+   background: #fff;
+   border-radius: 10px;
+   display: flex;
+   flex-direction: column;
+ }
+
+ .modal-header {
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   padding: 1rem 1.5rem;
+   border-bottom: 1px solid var(--border);
+ }
+
+ .modal-header h2 {
+   margin: 0;
+   font-size: 1.1rem;
+   font-weight: 600;
+ }
+
+ .modal-header button {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+  }
+
+ .modal-header .copy-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+ .modal-header .copy-btn:hover {
+    background: #1d4ed8;
+  }
+
+ .modal-body {
+   flex: 1;
+   overflow: auto;
+   padding: 1.5rem;
+ }
+
+ .modal-body pre {
+   margin: 0;
+   white-space: pre-wrap;
+   word-wrap: break-word;
+   font-size: 0.8rem;
+   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+ }
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+textarea {
+  width: 100%;
+  min-height: 110px;
+  resize: vertical;
+  padding: 0.65rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.controls {
+  margin-top: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+button {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  padding: 0.4rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+ button.primary {
+   background: var(--accent);
+   color: #fff;
+   border-color: var(--accent);
+ }
+
+ button:hover {
+   background: #f8fafc;
+   border-color: var(--accent);
+ }
+
+ button:active {
+   transform: translateY(1px);
+ }
+
+ button:disabled {
+   opacity: 0.6;
+   cursor: not-allowed;
+ }
+
+ button.copied {
+   background: #22c55e;
+   color: #fff;
+   border-color: #22c55e;
+ }
+
+.drop {
+  margin-top: 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 0.6rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+#error {
+  margin-top: 0.75rem;
+  color: var(--bad);
+  white-space: pre-wrap;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .grid { grid-template-columns: 1fr; }
+}
+
+svg {
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+td {
+  padding: 0.25rem 0.35rem;
+  vertical-align: top;
+}
+
+td.key {
+  color: var(--muted);
+  width: 45%;
+}
+
+td.value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  word-break: break-all;
+}
+
+.good { color: var(--good); font-weight: 500; }
+.bad  { color: var(--bad);  font-weight: 500; }
+
+details {
+  margin-top: 0.75rem;
+}
+
+ pre {
+   background: #f1f5f9;
+   border-radius: 6px;
+   padding: 0.5rem;
+   overflow-x: auto;
+   font-size: 0.8rem;
+ }
+
+ .footer {
+   margin-top: auto;
+   padding: 0 1.5rem 1rem;
+   border-top: 1px solid var(--border);
+   background: #f8fafc;
+ }
+
+ .footer .content {
+   max-width: 1100px;
+   margin: 0 auto;
+   text-align: center;
+ }
+
+ .footer a {
+   color: var(--muted);
+   text-decoration: none;
+ }
+
+ .footer a:hover {
+   color: var(--text);
+ }
+
+ .footer p {
+   margin: 0;
+ }
+
+ .copyright {
+   text-align: center;
+   padding: 2rem;
+   color: var(--muted);
+   font-size: 0.8rem;
+   margin-top: auto;
+ }
+ </style>
+</head>
+
+<body>
+<div class="container">
+
+ <header>
+   <h1>Molecule Clipboard</h1>
+   <div class="subtitle">
+     A browser-based RDKit tool for inspecting and canonicalizing small molecules
+   </div>
+   <div class="badges">
+     <span class="badge" title="Single HTML file - just open in any browser">
+       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+         <circle cx="12" cy="12" r="10"></circle>
+         <path d="M2 12h20"></path>
+         <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10 15.3 15.3 0 0 1 4-10z"></path>
+       </svg>
+       Runs Anywhere
+     </span>
+     <span class="badge" title="All processing happens in your browser - no data sent anywhere">
+       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+         <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+       </svg>
+       Runs Locally
+     </span>
+     <span class="badge" onclick="viewSource()" title="View HTML source">
+       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+         <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+       </svg>
+       View Source
+     </span>
+   </div>
+   <div class="version">RDKit version: <span id="rdkitVersion">2025.03.4</span></div>
+ </header>
+
+<div class="panel">
+  <textarea id="input" placeholder="Paste SMILES, MolBlock, or SDF here"></textarea>
+
+  <div class="drop" id="drop">
+    Drag &amp; drop MOL / SDF / TXT files here
+  </div>
+
+  <div class="controls">
+    <button id="processBtn" class="primary">Process</button>
+    <button onclick="copyShareLink()">Copy link</button>
+    <button onclick="clearAll()">Clear</button>
+  </div>
+
+  <div id="error"></div>
+</div>
+
+<div id="output" style="display: block;">
+
+  <div class="panel grid">
+    <div>
+        <strong>Structure</strong><br><br>
+        <div id="svg"><!--?xml version='1.0' encoding='iso-8859-1'?-->
+<svg version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg" xmlns:rdkit="http://www.rdkit.org/xml" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" width="250px" height="200px" viewBox="0 0 250 200">
+<!-- END OF HEADER -->
+<rect style="opacity:1.0;fill:#FFFFFF;stroke:none" width="250.0" height="200.0" x="0.0" y="0.0"> </rect>
+<path class="bond-0 atom-0 atom-1" d="M 12.5,155.1 L 61.2,127.0" style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:2.0px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"></path>
+<path class="bond-0 atom-0 atom-1" d="M 61.2,127.0 L 110.0,98.9" style="fill:none;fill-rule:evenodd;stroke:#0000FF;stroke-width:2.0px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"></path>
+<path class="bond-1 atom-1 atom-2" d="M 140.0,98.9 L 188.8,127.0" style="fill:none;fill-rule:evenodd;stroke:#0000FF;stroke-width:2.0px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"></path>
+<path class="bond-1 atom-1 atom-2" d="M 188.8,127.0 L 237.5,155.1" style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:2.0px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"></path>
+<path class="atom-1" d="M 118.7 76.0
+L 128.0 91.0
+Q 128.9 92.5, 130.4 95.2
+Q 131.9 97.9, 132.0 98.0
+L 132.0 76.0
+L 135.7 76.0
+L 135.7 104.3
+L 131.9 104.3
+L 121.9 87.9
+Q 120.7 86.0, 119.5 83.8
+Q 118.3 81.6, 117.9 80.9
+L 117.9 104.3
+L 114.3 104.3
+L 114.3 76.0
+L 118.7 76.0
+" fill="#0000FF"></path>
+<path class="atom-1" d="M 113.9 44.9
+L 117.8 44.9
+L 117.8 56.9
+L 132.2 56.9
+L 132.2 44.9
+L 136.1 44.9
+L 136.1 73.2
+L 132.2 73.2
+L 132.2 60.1
+L 117.8 60.1
+L 117.8 73.2
+L 113.9 73.2
+L 113.9 44.9
+" fill="#0000FF"></path>
+</svg>
+</div><br>
+        <button onclick="downloadSVG()">Download SVG</button>
+        <button onclick="downloadPNG()">Download PNG</button>
+        <button onclick="copySVG()">Copy SVG</button>
+      </div>
+
+    <div>
+      <strong>Properties</strong>
+      <table id="props"><tbody><tr><td class="key">MW</td><td class="value">45.09</td></tr></tbody><tbody><tr><td class="key">cLogP</td><td class="value">-0.16</td></tr></tbody><tbody><tr><td class="key">TPSA</td><td class="value">12.03</td></tr></tbody><tbody><tr><td class="key">HBD</td><td class="value">1</td></tr></tbody><tbody><tr><td class="key">HBA</td><td class="value">1</td></tr></tbody><tbody><tr><td class="key">RotB</td><td class="value">0</td></tr></tbody></table>
+
+      <br>
+      <strong>Rules</strong>
+      <table id="rules">
+      <tbody><tr><td class="key">Lipinski</td><td class="value"><span class="result-badge pass">Pass</span></td></tr>
+      <tr><td class="key">Veber</td><td class="value"><span class="result-badge pass">Pass</span></td></tr>
+    </tbody></table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <strong>Representations</strong>
+    <table>
+      <tbody><tr>
+        <td class="key">Canonical SMILES</td>
+        <td class="value" id="smiles">CNC</td>
+        <td><button onclick="copy('smiles')">Copy</button></td>
+      </tr>
+      <tr>
+        <td class="key">InChI</td>
+        <td class="value" id="inchi">InChI=1S/C2H7N/c1-3-2/h3H,1-2H3</td>
+        <td><button onclick="copy('inchi')">Copy</button></td>
+      </tr>
+      <tr>
+        <td class="key">InChIKey</td>
+        <td class="value" id="inchikey">ROSDSFDQCJNGOL-UHFFFAOYSA-N</td>
+        <td><button onclick="copy('inchikey')">Copy</button></td>
+      </tr>
+    </tbody></table>
+
+     <details>
+       <summary>MolBlock</summary>
+       <pre id="molblock">
+     RDKit          2D
+
+  3  2  0  0  0  0  0  0  0  0999 V2000
+    0.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    1.2990    0.7500    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0
+    2.5981   -0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0
+  2  3  1  0
+M  END
+</pre>
+       <button onclick="copy('molblock')">Copy MolBlock</button>
+       <button onclick="downloadSDF()">Download SDF</button>
+      </details>
+   </div>
+ </div>
+
+ <div class="copyright">
+  © <span id="year">2025-2025</span> <a href="https://github.com/Ruibin-Liu/molecule-clipboard" target="_blank" rel="noopener">Ruibin-Liu</a>
+</div>
+
+ <!-- RDKit.js -->
+<script>
+let rdkitModule = null;
+
+ async function initRDKit() {
+   try {
+     rdkitModule = await initRDKitModule();
+     const btn = document.getElementById("processBtn");
+     btn.disabled = false;
+     btn.textContent = "Process";
+     btn.onclick = process;
+     displayVersion();
+     loadFromURL();
+   } catch(e) {
+     document.getElementById("error").textContent = "Failed to load RDKit: " + e;
+   }
+ }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@rdkit/rdkit/dist/RDKit_minimal.js"></script>
+<script>initRDKit();</script>
+
+<script>
+ let mol = null;
+
+ function process(updateURL = true) {
+   clearError();
+   try {
+     let input = document.getElementById("input").value;
+     if (!input.trim()) throw "Empty input";
+
+     if (mol) mol.delete();
+     mol = rdkitModule.get_mol(input);
+     if (!mol || !mol.is_valid()) throw "Unable to parse molecule";
+
+     const smiles = mol.get_smiles();
+     mol.delete();
+
+     mol = rdkitModule.get_mol(smiles);
+     if (!mol || !mol.is_valid()) throw "Unable to generate 2D structure";
+
+      render(mol);
+      if (updateURL) setURL(smiles);
+   } catch (e) {
+     showError(e);
+   }
+ }
+
+ function displayVersion() {
+   document.getElementById("rdkitVersion").textContent = rdkitModule.version();
+ }
+
+ function render(m) {
+   document.getElementById("output").style.display = "block";
+   document.getElementById("svg").innerHTML = m.get_svg();
+
+   document.getElementById("smiles").textContent   = m.get_smiles();
+   const inchi = m.get_inchi();
+   document.getElementById("inchi").textContent = inchi;
+   document.getElementById("inchikey").textContent = rdkitModule.get_inchikey_for_inchi(inchi);
+   document.getElementById("molblock").textContent = m.get_molblock();
+
+   const d = JSON.parse(m.get_descriptors());
+
+   const props = [
+     ["MW",    d.amw.toFixed(2)],
+     ["cLogP", d.CrippenClogP.toFixed(2)],
+     ["TPSA",  d.tpsa.toFixed(2)],
+     ["HBD",   d.NumHBD],
+     ["HBA",   d.NumHBA],
+     ["RotB",  d.NumRotatableBonds]
+   ];
+
+   document.getElementById("props").innerHTML = "";
+   props.forEach(([k, v]) => {
+     document.getElementById("props").insertAdjacentHTML(
+       "beforeend",
+       `<tr><td class="key">${k}</td><td class="value">${v}</td></tr>`
+     );
+   });
+
+   const lipinski =
+     d.amw <= 500 &&
+     d.CrippenClogP <= 5 &&
+     d.NumHBD <= 5 &&
+     d.NumHBA <= 10;
+
+   const veber =
+     d.tpsa <= 140 &&
+     d.NumRotatableBonds <= 10;
+
+    document.getElementById("rules").innerHTML = `
+      <tr><td class="key">Lipinski</td><td class="value"><span class="result-badge ${lipinski?'pass':'fail'}">${lipinski?'Pass':'Fail'}</span></td></tr>
+      <tr><td class="key">Veber</td><td class="value"><span class="result-badge ${veber?'pass':'fail'}">${veber?'Pass':'Fail'}</span></td></tr>
+    `;
+ }
+
+ function copy(id) {
+   const text = document.getElementById(id).textContent;
+   navigator.clipboard.writeText(text);
+
+   const button = document.querySelector(`button[onclick="copy('${id}')"]`);
+   if (button) {
+     const originalText = button.textContent;
+     button.classList.add('copied');
+     button.textContent = 'Copied!';
+     setTimeout(() => {
+       button.textContent = originalText;
+       button.classList.remove('copied');
+     }, 1500);
+   }
+ }
+
+ function downloadSVG() {
+   const s = document.querySelector("svg");
+   const a = document.createElement("a");
+   a.href = URL.createObjectURL(new Blob([s.outerHTML], {type:"image/svg+xml"}));
+   a.download = "molecule.svg";
+   a.click();
+ }
+
+ function copySVG() {
+   const s = document.querySelector("svg");
+   navigator.clipboard.writeText(s.outerHTML);
+ }
+
+ function downloadSDF() {
+   const molblock = document.getElementById("molblock").textContent;
+   const sdf = molblock + "$$$$";
+   const a = document.createElement("a");
+   a.href = URL.createObjectURL(new Blob([sdf], {type:"chemical/x-mdl-molfile"}));
+   a.download = "molecule.sdf";
+   a.click();
+ }
+
+function setURL(smiles) {
+  location.hash = "mol=" + btoa(smiles);
+}
+
+ function loadFromURL() {
+   if (!location.hash.startsWith("#mol=")) return;
+   document.getElementById("input").value = atob(location.hash.slice(5));
+   process(false);
+ }
+
+ function copyShareLink() {
+    navigator.clipboard.writeText(location.href);
+
+    const btn = document.querySelector("button[onclick='copyShareLink()']");
+    const originalText = btn.textContent;
+    btn.classList.add('copied');
+    btn.textContent = 'Copied!';
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.classList.remove('copied');
+    }, 1500);
+  }
+
+ function downloadSVG() {
+    const s = document.querySelector("#svg svg");
+    const svgContent = addSVGWrapper(s.outerHTML);
+
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([svgContent], {type:"image/svg+xml"}));
+    a.download = "molecule.svg";
+    a.click();
+  }
+
+  const PNG_EXPORT_PRESET = {
+    baseSize: 300,
+    pngSize: 1200,
+    strokeWidth: 2.0,
+    fontSize: 15,
+    fontFamily: 'Arial, Helvetica, sans-serif',
+    strokeColor: '#000000',
+    backgroundColor: '#ffffff',
+    lineCap: 'round',
+    lineJoin: 'round'
+  };
+
+  function downloadPNG() {
+    const svgEl = document.querySelector("#svg svg");
+    if (!svgEl) {
+      alert("No structure rendered.");
+      return;
+    }
+
+    let svgContent = svgEl.outerHTML;
+
+    const processPath = (match) => {
+      const hasAtom = match.includes('class="') && match.match(/class="[^"]*atom/);
+      const hasBond = match.includes('class="') && match.match(/class="[^"]*bond/);
+
+      if (!hasAtom && !hasBond) return match;
+
+      let result = match;
+
+      if (hasAtom) {
+        result = result.replace(/\sfill="[^"]*"/g, '');
+        result = result.replace(/fill:\s*#[0-9a-fA-F]+;?/gi, 'fill:#000000;');
+        result = result.replace(/fill:\s*rgb\([^)]+\);?/gi, 'fill:#000000;');
+      }
+
+      if (hasBond) {
+        result = result.replace(/\sstroke="[^"]*"/g, '');
+        result = result.replace(/stroke:\s*#[0-9a-fA-F]+;?/gi, 'stroke:#000000;');
+        result = result.replace(/stroke:\s*rgb\([^)]+\);?/gi, 'stroke:#000000;');
+      }
+
+      return result;
+    };
+
+    svgContent = svgContent.replace(/<path[^>]*>/g, processPath);
+
+    svgContent = svgContent.replace(/width="[^"]*"/, `width="${PNG_EXPORT_PRESET.pngSize}"`);
+    svgContent = svgContent.replace(/height="[^"]*"/, `height="${PNG_EXPORT_PRESET.pngSize}"`);
+    svgContent = svgContent.replace(/viewBox="[^"]*"/, `viewBox="0 0 ${PNG_EXPORT_PRESET.baseSize} ${PNG_EXPORT_PRESET.baseSize}"`);
+
+    const blob = new Blob([svgContent], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+
+    const img = new Image();
+    img.src = url;
+
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = PNG_EXPORT_PRESET.pngSize;
+      canvas.height = PNG_EXPORT_PRESET.pngSize;
+
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = PNG_EXPORT_PRESET.backgroundColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      URL.revokeObjectURL(url);
+
+      const a = document.createElement("a");
+      a.href = canvas.toDataURL("image/png");
+      a.download = "molecule.png";
+      a.click();
+    };
+
+    img.onerror = () => {
+      showError("Failed to render SVG as PNG");
+      URL.revokeObjectURL(url);
+    };
+  }
+
+ function copySVG() {
+   const s = document.querySelector("#svg svg");
+   navigator.clipboard.writeText(addSVGWrapper(s.outerHTML));
+
+   const btn = document.querySelector("button[onclick='copySVG()']");
+   const originalText = btn.textContent;
+   btn.classList.add('copied');
+   btn.textContent = 'Copied!';
+   setTimeout(() => {
+     btn.textContent = originalText;
+     btn.classList.remove('copied');
+   }, 1500);
+ }
+
+ function addSVGWrapper(svgContent) {
+   if (!svgContent.includes('xmlns=')) {
+     return svgContent.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+   }
+   return svgContent;
+ }
+
+  function clearAll() {
+     document.getElementById("input").value = "";
+     document.getElementById("output").style.display = "none";
+     history.replaceState(null, "", location.pathname);
+     if (mol) {
+       mol.delete();
+       mol = null;
+     }
+   }
+
+   function viewSource() {
+     document.getElementById("sourceCode").textContent = document.documentElement.outerHTML;
+     document.getElementById("sourceModal").style.display = "block";
+   }
+
+    function closeSourceModal() {
+      document.getElementById("sourceModal").style.display = "none";
+    }
+
+    function copySource() {
+      navigator.clipboard.writeText(document.documentElement.outerHTML);
+      const btn = document.querySelector(".copy-btn");
+      const originalText = btn.textContent;
+      btn.textContent = "Copied!";
+      setTimeout(() => btn.textContent = originalText, 1500);
+    }
+
+   function showError(e) {
+   document.getElementById("error").textContent = e.toString();
+ }
+ function clearError() {
+   document.getElementById("error").textContent = "";
+ }
+
+ /* Drag & drop */
+ const drop = document.getElementById("drop");
+ drop.ondragover = e => { e.preventDefault(); drop.style.borderColor = "var(--accent)"; };
+ drop.ondragleave = () => drop.style.borderColor = "var(--border)";
+ drop.ondrop = e => {
+   e.preventDefault();
+   drop.style.borderColor = "var(--border)";
+   const f = e.dataTransfer.files[0];
+   if (!f) return;
+   const r = new FileReader();
+   r.onload = () => { document.getElementById("input").value = r.result; process(); };
+    r.readAsText(f);
+  };
+ </script>
+
+<script>
+  document.getElementById("year").textContent = "2025-" + new Date().getFullYear();
+</script>
+
+<div id="sourceModal" class="modal" onclick="if(event.target === this) closeSourceModal()" style="display: block;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>HTML Source</h2>
+      <div>
+        <button class="copy-btn" onclick="copySource()">Copy</button>
+        <button onclick="closeSourceModal()">×</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <pre id="sourceCode">&lt;html lang="en"&gt;&lt;head&gt;
+ &lt;meta charset="utf-8"&gt;
+ &lt;title&gt;Molecule Clipboard&lt;/title&gt;
+ &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+ &lt;meta name="theme-color" content="#2563eb"&gt;
+ &lt;meta name="description" content="Molecule Clipboard is a browser-based RDKit tool for inspecting, canonicalizing, and sharing small molecules from SMILES, MOL, or SDF. Runs locally with no uploads."&gt;
+ &lt;meta name="keywords" content="RDKit, molecule inspector, SMILES viewer, cheminformatics, chemical structure, molecular properties, browser RDKit"&gt;
+ &lt;link rel="icon" href="data:image/svg+xml,&amp;lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'&amp;gt;
+  &amp;lt;rect width='32' height='32' rx='6' fill='%232563eb'/&amp;gt;
+  &amp;lt;circle cx='10' cy='16' r='3' fill='white'/&amp;gt;
+  &amp;lt;circle cx='22' cy='10' r='3' fill='white'/&amp;gt;
+  &amp;lt;circle cx='22' cy='22' r='3' fill='white'/&amp;gt;
+  &amp;lt;line x1='10' y1='16' x2='22' y2='10' stroke='white' stroke-width='2'/&amp;gt;
+  &amp;lt;line x1='10' y1='16' x2='22' y2='22' stroke='white' stroke-width='2'/&amp;gt;
+&amp;lt;/svg&amp;gt;"&gt;
+ 
+&lt;style&gt;
+:root {
+  --bg: #f8fafc;
+  --panel: #ffffff;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --muted: #64748b;
+  --accent: #2563eb;
+  --good: #166534;
+  --bad: #b91c1c;
+}
+
+ * { box-sizing: border-box; }
+
+ body {
+   margin: 0;
+   background: var(--bg);
+   color: var(--text);
+   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                Roboto, Helvetica, Arial, sans-serif;
+ }
+
+ .container {
+   max-width: 1100px;
+   margin: 2.5rem auto;
+   padding: 0 1.5rem;
+ }
+
+ header {
+   margin-bottom: 1.5rem;
+ }
+
+ h1 {
+   font-size: 1.5rem;
+   margin: 0;
+   font-weight: 600;
+ }
+
+ .subtitle {
+   color: var(--muted);
+   margin-top: 0.25rem;
+   font-size: 0.95rem;
+ }
+
+ .version {
+   color: var(--muted);
+   margin-top: 0.5rem;
+   font-size: 0.8rem;
+   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+ }
+
+ .badges {
+   margin-top: 0.75rem;
+   display: flex;
+   gap: 0.75rem;
+   flex-wrap: wrap;
+ }
+
+ .badge {
+   display: inline-flex;
+   align-items: center;
+   padding: 0.35rem 0.65rem;
+   border-radius: 6px;
+   background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+   color: var(--text);
+   font-size: 0.75rem;
+   font-weight: 500;
+   border: 1px solid var(--border);
+   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+   text-decoration: none;
+   transition: all 0.15s ease;
+ }
+
+ .badge:hover {
+   transform: translateY(-1px);
+   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+   border-color: var(--accent);
+ }
+
+ .badge svg {
+   width: 13px;
+   height: 13px;
+   margin-right: 5px;
+   border: none;
+   background: transparent;
+ }
+
+ .result-badge {
+   display: inline-block;
+   padding: 0.25rem 0.5rem;
+   border-radius: 4px;
+   font-size: 0.75rem;
+   font-weight: 500;
+ }
+
+ .result-badge.pass {
+   background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+   color: #166534;
+ }
+
+ .result-badge.fail {
+   background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+   color: #b91c1c;
+ }
+
+ .modal {
+   display: none;
+   position: fixed;
+   top: 0;
+   left: 0;
+   width: 100%;
+   height: 100%;
+   background: rgba(0,0,0,0.5);
+   z-index: 1000;
+ }
+
+ .modal-content {
+   position: relative;
+   width: 90%;
+   max-width: 900px;
+   max-height: 90%;
+   margin: 2rem auto;
+   background: #fff;
+   border-radius: 10px;
+   display: flex;
+   flex-direction: column;
+ }
+
+ .modal-header {
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   padding: 1rem 1.5rem;
+   border-bottom: 1px solid var(--border);
+ }
+
+ .modal-header h2 {
+   margin: 0;
+   font-size: 1.1rem;
+   font-weight: 600;
+ }
+
+ .modal-header button {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+  }
+
+ .modal-header .copy-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+ .modal-header .copy-btn:hover {
+    background: #1d4ed8;
+  }
+
+ .modal-body {
+   flex: 1;
+   overflow: auto;
+   padding: 1.5rem;
+ }
+
+ .modal-body pre {
+   margin: 0;
+   white-space: pre-wrap;
+   word-wrap: break-word;
+   font-size: 0.8rem;
+   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+ }
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+textarea {
+  width: 100%;
+  min-height: 110px;
+  resize: vertical;
+  padding: 0.65rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.controls {
+  margin-top: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+button {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  padding: 0.4rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+ button.primary {
+   background: var(--accent);
+   color: #fff;
+   border-color: var(--accent);
+ }
+
+ button:hover {
+   background: #f8fafc;
+   border-color: var(--accent);
+ }
+
+ button:active {
+   transform: translateY(1px);
+ }
+
+ button:disabled {
+   opacity: 0.6;
+   cursor: not-allowed;
+ }
+
+ button.copied {
+   background: #22c55e;
+   color: #fff;
+   border-color: #22c55e;
+ }
+
+.drop {
+  margin-top: 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 0.6rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+#error {
+  margin-top: 0.75rem;
+  color: var(--bad);
+  white-space: pre-wrap;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .grid { grid-template-columns: 1fr; }
+}
+
+svg {
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+td {
+  padding: 0.25rem 0.35rem;
+  vertical-align: top;
+}
+
+td.key {
+  color: var(--muted);
+  width: 45%;
+}
+
+td.value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  word-break: break-all;
+}
+
+.good { color: var(--good); font-weight: 500; }
+.bad  { color: var(--bad);  font-weight: 500; }
+
+details {
+  margin-top: 0.75rem;
+}
+
+ pre {
+   background: #f1f5f9;
+   border-radius: 6px;
+   padding: 0.5rem;
+   overflow-x: auto;
+   font-size: 0.8rem;
+ }
+
+ .footer {
+   margin-top: auto;
+   padding: 0 1.5rem 1rem;
+   border-top: 1px solid var(--border);
+   background: #f8fafc;
+ }
+
+ .footer .content {
+   max-width: 1100px;
+   margin: 0 auto;
+   text-align: center;
+ }
+
+ .footer a {
+   color: var(--muted);
+   text-decoration: none;
+ }
+
+ .footer a:hover {
+   color: var(--text);
+ }
+
+ .footer p {
+   margin: 0;
+ }
+
+ .copyright {
+   text-align: center;
+   padding: 2rem;
+   color: var(--muted);
+   font-size: 0.8rem;
+   margin-top: auto;
+ }
+ &lt;/style&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+&lt;div class="container"&gt;
+
+ &lt;header&gt;
+   &lt;h1&gt;Molecule Clipboard&lt;/h1&gt;
+   &lt;div class="subtitle"&gt;
+     A browser-based RDKit tool for inspecting and canonicalizing small molecules
+   &lt;/div&gt;
+   &lt;div class="badges"&gt;
+     &lt;span class="badge" title="Single HTML file - just open in any browser"&gt;
+       &lt;svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"&gt;
+         &lt;circle cx="12" cy="12" r="10"&gt;&lt;/circle&gt;
+         &lt;path d="M2 12h20"&gt;&lt;/path&gt;
+         &lt;path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10 15.3 15.3 0 0 1 4-10z"&gt;&lt;/path&gt;
+       &lt;/svg&gt;
+       Runs Anywhere
+     &lt;/span&gt;
+     &lt;span class="badge" title="All processing happens in your browser - no data sent anywhere"&gt;
+       &lt;svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"&gt;
+         &lt;rect x="3" y="11" width="18" height="11" rx="2" ry="2"&gt;&lt;/rect&gt;
+         &lt;path d="M7 11V7a5 5 0 0 1 10 0v4"&gt;&lt;/path&gt;
+       &lt;/svg&gt;
+       Runs Locally
+     &lt;/span&gt;
+     &lt;span class="badge" onclick="viewSource()" title="View HTML source"&gt;
+       &lt;svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"&gt;
+         &lt;path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"&gt;&lt;/path&gt;
+       &lt;/svg&gt;
+       View Source
+     &lt;/span&gt;
+   &lt;/div&gt;
+   &lt;div class="version"&gt;RDKit version: &lt;span id="rdkitVersion"&gt;2025.03.4&lt;/span&gt;&lt;/div&gt;
+ &lt;/header&gt;
+
+&lt;div class="panel"&gt;
+  &lt;textarea id="input" placeholder="Paste SMILES, MolBlock, or SDF here"&gt;&lt;/textarea&gt;
+
+  &lt;div class="drop" id="drop"&gt;
+    Drag &amp;amp; drop MOL / SDF / TXT files here
+  &lt;/div&gt;
+
+  &lt;div class="controls"&gt;
+    &lt;button id="processBtn" class="primary"&gt;Process&lt;/button&gt;
+    &lt;button onclick="copyShareLink()"&gt;Copy link&lt;/button&gt;
+    &lt;button onclick="clearAll()"&gt;Clear&lt;/button&gt;
+  &lt;/div&gt;
+
+  &lt;div id="error"&gt;&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;div id="output" style="display: block;"&gt;
+
+  &lt;div class="panel grid"&gt;
+    &lt;div&gt;
+        &lt;strong&gt;Structure&lt;/strong&gt;&lt;br&gt;&lt;br&gt;
+        &lt;div id="svg"&gt;&lt;!--?xml version='1.0' encoding='iso-8859-1'?--&gt;
+&lt;svg version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg" xmlns:rdkit="http://www.rdkit.org/xml" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" width="250px" height="200px" viewBox="0 0 250 200"&gt;
+&lt;!-- END OF HEADER --&gt;
+&lt;rect style="opacity:1.0;fill:#FFFFFF;stroke:none" width="250.0" height="200.0" x="0.0" y="0.0"&gt; &lt;/rect&gt;
+&lt;path class="bond-0 atom-0 atom-1" d="M 12.5,155.1 L 61.2,127.0" style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:2.0px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"&gt;&lt;/path&gt;
+&lt;path class="bond-0 atom-0 atom-1" d="M 61.2,127.0 L 110.0,98.9" style="fill:none;fill-rule:evenodd;stroke:#0000FF;stroke-width:2.0px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"&gt;&lt;/path&gt;
+&lt;path class="bond-1 atom-1 atom-2" d="M 140.0,98.9 L 188.8,127.0" style="fill:none;fill-rule:evenodd;stroke:#0000FF;stroke-width:2.0px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"&gt;&lt;/path&gt;
+&lt;path class="bond-1 atom-1 atom-2" d="M 188.8,127.0 L 237.5,155.1" style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:2.0px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"&gt;&lt;/path&gt;
+&lt;path class="atom-1" d="M 118.7 76.0
+L 128.0 91.0
+Q 128.9 92.5, 130.4 95.2
+Q 131.9 97.9, 132.0 98.0
+L 132.0 76.0
+L 135.7 76.0
+L 135.7 104.3
+L 131.9 104.3
+L 121.9 87.9
+Q 120.7 86.0, 119.5 83.8
+Q 118.3 81.6, 117.9 80.9
+L 117.9 104.3
+L 114.3 104.3
+L 114.3 76.0
+L 118.7 76.0
+" fill="#0000FF"&gt;&lt;/path&gt;
+&lt;path class="atom-1" d="M 113.9 44.9
+L 117.8 44.9
+L 117.8 56.9
+L 132.2 56.9
+L 132.2 44.9
+L 136.1 44.9
+L 136.1 73.2
+L 132.2 73.2
+L 132.2 60.1
+L 117.8 60.1
+L 117.8 73.2
+L 113.9 73.2
+L 113.9 44.9
+" fill="#0000FF"&gt;&lt;/path&gt;
+&lt;/svg&gt;
+&lt;/div&gt;&lt;br&gt;
+        &lt;button onclick="downloadSVG()"&gt;Download SVG&lt;/button&gt;
+        &lt;button onclick="downloadPNG()"&gt;Download PNG&lt;/button&gt;
+        &lt;button onclick="copySVG()"&gt;Copy SVG&lt;/button&gt;
+      &lt;/div&gt;
+
+    &lt;div&gt;
+      &lt;strong&gt;Properties&lt;/strong&gt;
+      &lt;table id="props"&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class="key"&gt;MW&lt;/td&gt;&lt;td class="value"&gt;45.09&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class="key"&gt;cLogP&lt;/td&gt;&lt;td class="value"&gt;-0.16&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class="key"&gt;TPSA&lt;/td&gt;&lt;td class="value"&gt;12.03&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class="key"&gt;HBD&lt;/td&gt;&lt;td class="value"&gt;1&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class="key"&gt;HBA&lt;/td&gt;&lt;td class="value"&gt;1&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td class="key"&gt;RotB&lt;/td&gt;&lt;td class="value"&gt;0&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;
+
+      &lt;br&gt;
+      &lt;strong&gt;Rules&lt;/strong&gt;
+      &lt;table id="rules"&gt;
+      &lt;tbody&gt;&lt;tr&gt;&lt;td class="key"&gt;Lipinski&lt;/td&gt;&lt;td class="value"&gt;&lt;span class="result-badge pass"&gt;Pass&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td class="key"&gt;Veber&lt;/td&gt;&lt;td class="value"&gt;&lt;span class="result-badge pass"&gt;Pass&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;
+    &lt;/tbody&gt;&lt;/table&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class="panel"&gt;
+    &lt;strong&gt;Representations&lt;/strong&gt;
+    &lt;table&gt;
+      &lt;tbody&gt;&lt;tr&gt;
+        &lt;td class="key"&gt;Canonical SMILES&lt;/td&gt;
+        &lt;td class="value" id="smiles"&gt;CNC&lt;/td&gt;
+        &lt;td&gt;&lt;button onclick="copy('smiles')"&gt;Copy&lt;/button&gt;&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+        &lt;td class="key"&gt;InChI&lt;/td&gt;
+        &lt;td class="value" id="inchi"&gt;InChI=1S/C2H7N/c1-3-2/h3H,1-2H3&lt;/td&gt;
+        &lt;td&gt;&lt;button onclick="copy('inchi')"&gt;Copy&lt;/button&gt;&lt;/td&gt;
+      &lt;/tr&gt;
+      &lt;tr&gt;
+        &lt;td class="key"&gt;InChIKey&lt;/td&gt;
+        &lt;td class="value" id="inchikey"&gt;ROSDSFDQCJNGOL-UHFFFAOYSA-N&lt;/td&gt;
+        &lt;td&gt;&lt;button onclick="copy('inchikey')"&gt;Copy&lt;/button&gt;&lt;/td&gt;
+      &lt;/tr&gt;
+    &lt;/tbody&gt;&lt;/table&gt;
+
+     &lt;details&gt;
+       &lt;summary&gt;MolBlock&lt;/summary&gt;
+       &lt;pre id="molblock"&gt;
+     RDKit          2D
+
+  3  2  0  0  0  0  0  0  0  0999 V2000
+    0.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    1.2990    0.7500    0.0000 N   0  0  0  0  0  0  0  0  0  0  0  0
+    2.5981   -0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0
+  2  3  1  0
+M  END
+&lt;/pre&gt;
+       &lt;button onclick="copy('molblock')"&gt;Copy MolBlock&lt;/button&gt;
+       &lt;button onclick="downloadSDF()"&gt;Download SDF&lt;/button&gt;
+      &lt;/details&gt;
+   &lt;/div&gt;
+ &lt;/div&gt;
+
+ &lt;div class="copyright"&gt;
+  © &lt;span id="year"&gt;2025-2025&lt;/span&gt; &lt;a href="https://github.com/Ruibin-Liu/molecule-clipboard" target="_blank" rel="noopener"&gt;Ruibin-Liu&lt;/a&gt;
+&lt;/div&gt;
+
+ &lt;!-- RDKit.js --&gt;
+&lt;script&gt;
+let rdkitModule = null;
+
+ async function initRDKit() {
+   try {
+     rdkitModule = await initRDKitModule();
+     const btn = document.getElementById("processBtn");
+     btn.disabled = false;
+     btn.textContent = "Process";
+     btn.onclick = process;
+     displayVersion();
+     loadFromURL();
+   } catch(e) {
+     document.getElementById("error").textContent = "Failed to load RDKit: " + e;
+   }
+ }
+&lt;/script&gt;
+&lt;script src="https://cdn.jsdelivr.net/npm/@rdkit/rdkit/dist/RDKit_minimal.js"&gt;&lt;/script&gt;
+&lt;script&gt;initRDKit();&lt;/script&gt;
+
+&lt;script&gt;
+ let mol = null;
+
+ function process(updateURL = true) {
+   clearError();
+   try {
+     let input = document.getElementById("input").value;
+     if (!input.trim()) throw "Empty input";
+
+     if (mol) mol.delete();
+     mol = rdkitModule.get_mol(input);
+     if (!mol || !mol.is_valid()) throw "Unable to parse molecule";
+
+     const smiles = mol.get_smiles();
+     mol.delete();
+
+     mol = rdkitModule.get_mol(smiles);
+     if (!mol || !mol.is_valid()) throw "Unable to generate 2D structure";
+
+      render(mol);
+      if (updateURL) setURL(smiles);
+   } catch (e) {
+     showError(e);
+   }
+ }
+
+ function displayVersion() {
+   document.getElementById("rdkitVersion").textContent = rdkitModule.version();
+ }
+
+ function render(m) {
+   document.getElementById("output").style.display = "block";
+   document.getElementById("svg").innerHTML = m.get_svg();
+
+   document.getElementById("smiles").textContent   = m.get_smiles();
+   const inchi = m.get_inchi();
+   document.getElementById("inchi").textContent = inchi;
+   document.getElementById("inchikey").textContent = rdkitModule.get_inchikey_for_inchi(inchi);
+   document.getElementById("molblock").textContent = m.get_molblock();
+
+   const d = JSON.parse(m.get_descriptors());
+
+   const props = [
+     ["MW",    d.amw.toFixed(2)],
+     ["cLogP", d.CrippenClogP.toFixed(2)],
+     ["TPSA",  d.tpsa.toFixed(2)],
+     ["HBD",   d.NumHBD],
+     ["HBA",   d.NumHBA],
+     ["RotB",  d.NumRotatableBonds]
+   ];
+
+   document.getElementById("props").innerHTML = "";
+   props.forEach(([k, v]) =&gt; {
+     document.getElementById("props").insertAdjacentHTML(
+       "beforeend",
+       `&lt;tr&gt;&lt;td class="key"&gt;${k}&lt;/td&gt;&lt;td class="value"&gt;${v}&lt;/td&gt;&lt;/tr&gt;`
+     );
+   });
+
+   const lipinski =
+     d.amw &lt;= 500 &amp;&amp;
+     d.CrippenClogP &lt;= 5 &amp;&amp;
+     d.NumHBD &lt;= 5 &amp;&amp;
+     d.NumHBA &lt;= 10;
+
+   const veber =
+     d.tpsa &lt;= 140 &amp;&amp;
+     d.NumRotatableBonds &lt;= 10;
+
+    document.getElementById("rules").innerHTML = `
+      &lt;tr&gt;&lt;td class="key"&gt;Lipinski&lt;/td&gt;&lt;td class="value"&gt;&lt;span class="result-badge ${lipinski?'pass':'fail'}"&gt;${lipinski?'Pass':'Fail'}&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td class="key"&gt;Veber&lt;/td&gt;&lt;td class="value"&gt;&lt;span class="result-badge ${veber?'pass':'fail'}"&gt;${veber?'Pass':'Fail'}&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;
+    `;
+ }
+
+ function copy(id) {
+   const text = document.getElementById(id).textContent;
+   navigator.clipboard.writeText(text);
+
+   const button = document.querySelector(`button[onclick="copy('${id}')"]`);
+   if (button) {
+     const originalText = button.textContent;
+     button.classList.add('copied');
+     button.textContent = 'Copied!';
+     setTimeout(() =&gt; {
+       button.textContent = originalText;
+       button.classList.remove('copied');
+     }, 1500);
+   }
+ }
+
+ function downloadSVG() {
+   const s = document.querySelector("svg");
+   const a = document.createElement("a");
+   a.href = URL.createObjectURL(new Blob([s.outerHTML], {type:"image/svg+xml"}));
+   a.download = "molecule.svg";
+   a.click();
+ }
+
+ function copySVG() {
+   const s = document.querySelector("svg");
+   navigator.clipboard.writeText(s.outerHTML);
+ }
+
+ function downloadSDF() {
+   const molblock = document.getElementById("molblock").textContent;
+   const sdf = molblock + "$$$$";
+   const a = document.createElement("a");
+   a.href = URL.createObjectURL(new Blob([sdf], {type:"chemical/x-mdl-molfile"}));
+   a.download = "molecule.sdf";
+   a.click();
+ }
+
+function setURL(smiles) {
+  location.hash = "mol=" + btoa(smiles);
+}
+
+ function loadFromURL() {
+   if (!location.hash.startsWith("#mol=")) return;
+   document.getElementById("input").value = atob(location.hash.slice(5));
+   process(false);
+ }
+
+ function copyShareLink() {
+    navigator.clipboard.writeText(location.href);
+
+    const btn = document.querySelector("button[onclick='copyShareLink()']");
+    const originalText = btn.textContent;
+    btn.classList.add('copied');
+    btn.textContent = 'Copied!';
+    setTimeout(() =&gt; {
+      btn.textContent = originalText;
+      btn.classList.remove('copied');
+    }, 1500);
+  }
+
+ function downloadSVG() {
+    const s = document.querySelector("#svg svg");
+    const svgContent = addSVGWrapper(s.outerHTML);
+
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([svgContent], {type:"image/svg+xml"}));
+    a.download = "molecule.svg";
+    a.click();
+  }
+
+  const PNG_EXPORT_PRESET = {
+    baseSize: 300,
+    pngSize: 1200,
+    strokeWidth: 2.0,
+    fontSize: 15,
+    fontFamily: 'Arial, Helvetica, sans-serif',
+    strokeColor: '#000000',
+    backgroundColor: '#ffffff',
+    lineCap: 'round',
+    lineJoin: 'round'
+  };
+
+  function downloadPNG() {
+    const svgEl = document.querySelector("#svg svg");
+    if (!svgEl) {
+      alert("No structure rendered.");
+      return;
+    }
+
+    let svgContent = svgEl.outerHTML;
+
+    const processPath = (match) =&gt; {
+      const hasAtom = match.includes('class="') &amp;&amp; match.match(/class="[^"]*atom/);
+      const hasBond = match.includes('class="') &amp;&amp; match.match(/class="[^"]*bond/);
+
+      if (!hasAtom &amp;&amp; !hasBond) return match;
+
+      let result = match;
+
+      if (hasAtom) {
+        result = result.replace(/\sfill="[^"]*"/g, '');
+        result = result.replace(/fill:\s*#[0-9a-fA-F]+;?/gi, 'fill:#000000;');
+        result = result.replace(/fill:\s*rgb\([^)]+\);?/gi, 'fill:#000000;');
+      }
+
+      if (hasBond) {
+        result = result.replace(/\sstroke="[^"]*"/g, '');
+        result = result.replace(/stroke:\s*#[0-9a-fA-F]+;?/gi, 'stroke:#000000;');
+        result = result.replace(/stroke:\s*rgb\([^)]+\);?/gi, 'stroke:#000000;');
+      }
+
+      return result;
+    };
+
+    svgContent = svgContent.replace(/&lt;path[^&gt;]*&gt;/g, processPath);
+
+    svgContent = svgContent.replace(/width="[^"]*"/, `width="${PNG_EXPORT_PRESET.pngSize}"`);
+    svgContent = svgContent.replace(/height="[^"]*"/, `height="${PNG_EXPORT_PRESET.pngSize}"`);
+    svgContent = svgContent.replace(/viewBox="[^"]*"/, `viewBox="0 0 ${PNG_EXPORT_PRESET.baseSize} ${PNG_EXPORT_PRESET.baseSize}"`);
+
+    const blob = new Blob([svgContent], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+
+    const img = new Image();
+    img.src = url;
+
+    img.onload = () =&gt; {
+      const canvas = document.createElement("canvas");
+      canvas.width = PNG_EXPORT_PRESET.pngSize;
+      canvas.height = PNG_EXPORT_PRESET.pngSize;
+
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = PNG_EXPORT_PRESET.backgroundColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      URL.revokeObjectURL(url);
+
+      const a = document.createElement("a");
+      a.href = canvas.toDataURL("image/png");
+      a.download = "molecule.png";
+      a.click();
+    };
+
+    img.onerror = () =&gt; {
+      showError("Failed to render SVG as PNG");
+      URL.revokeObjectURL(url);
+    };
+  }
+
+ function copySVG() {
+   const s = document.querySelector("#svg svg");
+   navigator.clipboard.writeText(addSVGWrapper(s.outerHTML));
+
+   const btn = document.querySelector("button[onclick='copySVG()']");
+   const originalText = btn.textContent;
+   btn.classList.add('copied');
+   btn.textContent = 'Copied!';
+   setTimeout(() =&gt; {
+     btn.textContent = originalText;
+     btn.classList.remove('copied');
+   }, 1500);
+ }
+
+ function addSVGWrapper(svgContent) {
+   if (!svgContent.includes('xmlns=')) {
+     return svgContent.replace('&lt;svg', '&lt;svg xmlns="http://www.w3.org/2000/svg"');
+   }
+   return svgContent;
+ }
+
+  function clearAll() {
+     document.getElementById("input").value = "";
+     document.getElementById("output").style.display = "none";
+     history.replaceState(null, "", location.pathname);
+     if (mol) {
+       mol.delete();
+       mol = null;
+     }
+   }
+
+   function viewSource() {
+     document.getElementById("sourceCode").textContent = document.documentElement.outerHTML;
+     document.getElementById("sourceModal").style.display = "block";
+   }
+
+    function closeSourceModal() {
+      document.getElementById("sourceModal").style.display = "none";
+    }
+
+    function copySource() {
+      navigator.clipboard.writeText(document.documentElement.outerHTML);
+      const btn = document.querySelector(".copy-btn");
+      const originalText = btn.textContent;
+      btn.textContent = "Copied!";
+      setTimeout(() =&gt; btn.textContent = originalText, 1500);
+    }
+
+   function showError(e) {
+   document.getElementById("error").textContent = e.toString();
+ }
+ function clearError() {
+   document.getElementById("error").textContent = "";
+ }
+
+ /* Drag &amp; drop */
+ const drop = document.getElementById("drop");
+ drop.ondragover = e =&gt; { e.preventDefault(); drop.style.borderColor = "var(--accent)"; };
+ drop.ondragleave = () =&gt; drop.style.borderColor = "var(--border)";
+ drop.ondrop = e =&gt; {
+   e.preventDefault();
+   drop.style.borderColor = "var(--border)";
+   const f = e.dataTransfer.files[0];
+   if (!f) return;
+   const r = new FileReader();
+   r.onload = () =&gt; { document.getElementById("input").value = r.result; process(); };
+    r.readAsText(f);
+  };
+ &lt;/script&gt;
+
+&lt;script&gt;
+  document.getElementById("year").textContent = "2025-" + new Date().getFullYear();
+&lt;/script&gt;
+
+&lt;div id="sourceModal" class="modal" onclick="if(event.target === this) closeSourceModal()"&gt;
+  &lt;div class="modal-content"&gt;
+    &lt;div class="modal-header"&gt;
+      &lt;h2&gt;HTML Source&lt;/h2&gt;
+      &lt;div&gt;
+        &lt;button class="copy-btn" onclick="copySource()"&gt;Copy&lt;/button&gt;
+        &lt;button onclick="closeSourceModal()"&gt;×&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="modal-body"&gt;
+      &lt;pre id="sourceCode"&gt;&lt;/pre&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+ 
+ 
+&lt;/div&gt;&lt;/body&gt;&lt;/html&gt;</pre>
+    </div>
+  </div>
+</div>
+
+ 
+ 
+</div></body></html>
