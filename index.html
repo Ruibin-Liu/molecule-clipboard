@@ -12,10 +12,13 @@
   <circle cx='10' cy='16' r='3' fill='white'/>
   <circle cx='22' cy='10' r='3' fill='white'/>
   <circle cx='22' cy='22' r='3' fill='white'/>
-  <line x1='10' y1='16' x2='22' y2='10' stroke='white' stroke-width='2'/>
-  <line x1='10' y1='16' x2='22' y2='22' stroke='white' stroke-width='2'/>
-</svg>">
- 
+   <line x1='10' y1='16' x2='22' y2='10' stroke='white' stroke-width='2'/>
+   <line x1='10' y1='16' x2='22' y2='22' stroke='white' stroke-width='2'/>
+</svg>
+">
+
+<script defer src="https://cdn.jsdelivr.net/npm/jsme@2017.2.26/jsme/jsme.nocache.js"></script>
+
 <style>
 :root {
   --bg: #f8fafc;
@@ -158,13 +161,14 @@
    font-weight: 600;
  }
 
- .modal-header button {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    padding: 0;
-    line-height: 1;
+  .modal-header .close-btn {
+     background: none;
+     border: none;
+     font-size: 1.5rem;
+     cursor: pointer;
+     padding: 0 0.5rem;
+     line-height: 1;
+     color: var(--text);
   }
 
  .modal-header .copy-btn {
@@ -352,48 +356,22 @@ details {
   margin-top: 0.75rem;
 }
 
- pre {
-   background: #f1f5f9;
-   border-radius: 6px;
-   padding: 0.5rem;
-   overflow-x: auto;
-   font-size: 0.8rem;
- }
+  pre {
+    background: #f1f5f9;
+    border-radius: 6px;
+    padding: 0.5rem;
+    overflow-x: auto;
+    font-size: 0.8rem;
+  }
 
- .footer {
-   margin-top: auto;
-   padding: 0 1.5rem 1rem;
-   border-top: 1px solid var(--border);
-   background: #f8fafc;
- }
-
- .footer .content {
-   max-width: 1100px;
-   margin: 0 auto;
-   text-align: center;
- }
-
- .footer a {
-   color: var(--muted);
-   text-decoration: none;
- }
-
- .footer a:hover {
-   color: var(--text);
- }
-
- .footer p {
-   margin: 0;
- }
-
- .copyright {
-   text-align: center;
-   padding: 2rem;
-   color: var(--muted);
-   font-size: 0.8rem;
-   margin-top: auto;
- }
- </style>
+  .copyright {
+    text-align: center;
+    padding: 2rem;
+    color: var(--muted);
+    font-size: 0.8rem;
+    margin-top: auto;
+  }
+  </style>
 </head>
 
 <body>
@@ -439,9 +417,10 @@ details {
     Drag & drop MOL / SDF / TXT files here
   </div>
 
-  <div style="display: flex;">
-    <button onclick="clearAll()" style="color: #b91c1c; border-color: #b91c1c;">Clear</button>
-  </div>
+   <div style="display: flex; gap: 0.5rem;">
+     <button onclick="openJSME()" style="color: #2563eb; border-color: #2563eb;">Draw/Edit</button>
+     <button onclick="clearAll()" style="color: #b91c1c; border-color: #b91c1c;">Clear</button>
+   </div>
 
   <div id="error"></div>
 </div>
@@ -525,11 +504,10 @@ details {
    </div>
  </div>
 
- <div class="copyright">
-  © <span id="year"></span> <a href="https://github.com/Ruibin-Liu/molecule-clipboard" target="_blank" rel="noopener">Ruibin-Liu</a>
-</div>
+  <div class="copyright">
+   © <span id="year"></span> <a href="https://github.com/Ruibin-Liu/molecule-clipboard" target="_blank" rel="noopener">Ruibin-Liu</a>
+ </div>
 
- <!-- RDKit.js -->
 <script>
 let rdkitModule = null;
 
@@ -633,43 +611,30 @@ let rdkitModule = null;
     `;
  }
 
- function copy(id) {
-   const text = document.getElementById(id).textContent;
-   navigator.clipboard.writeText(text);
+  function copy(id) {
+    const text = document.getElementById(id).textContent;
+    navigator.clipboard.writeText(text);
 
-   const button = document.querySelector(`button[onclick="copy('${id}')"]`);
-   if (button) {
-     const originalText = button.textContent;
-     button.classList.add('copied');
-     button.textContent = 'Copied!';
-     setTimeout(() => {
-       button.textContent = originalText;
-       button.classList.remove('copied');
-     }, 1500);
-   }
- }
+    const button = document.querySelector(`button[onclick="copy('${id}')"]`);
+    if (button) {
+      const originalText = button.textContent;
+      button.classList.add('copied');
+      button.textContent = 'Copied!';
+      setTimeout(() => {
+        button.textContent = originalText;
+        button.classList.remove('copied');
+      }, 1500);
+    }
+  }
 
- function downloadSVG() {
-   const s = document.querySelector("svg");
-   const a = document.createElement("a");
-   a.href = URL.createObjectURL(new Blob([s.outerHTML], {type:"image/svg+xml"}));
-   a.download = "molecule.svg";
-   a.click();
- }
-
- function copySVG() {
-   const s = document.querySelector("svg");
-   navigator.clipboard.writeText(s.outerHTML);
- }
-
- function downloadSDF() {
-   const molblock = document.getElementById("molblock").textContent;
-   const sdf = molblock + "$$$$";
-   const a = document.createElement("a");
-   a.href = URL.createObjectURL(new Blob([sdf], {type:"chemical/x-mdl-molfile"}));
-   a.download = "molecule.sdf";
-   a.click();
- }
+  function downloadSDF() {
+    const molblock = document.getElementById("molblock").textContent;
+    const sdf = molblock + "$$$$";
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([sdf], {type:"chemical/x-mdl-molfile"}));
+    a.download = "molecule.sdf";
+    a.click();
+  }
 
 function setURL(smiles) {
   location.hash = "mol=" + btoa(smiles);
@@ -805,15 +770,10 @@ function setURL(smiles) {
    return svgContent;
  }
 
-  function clearAll() {
-     document.getElementById("input").value = "";
-     document.getElementById("output").style.display = "none";
-     history.replaceState(null, "", location.pathname);
-     if (mol) {
-       mol.delete();
-       mol = null;
-     }
-   }
+   function clearAll() {
+      history.replaceState(null, "", location.pathname);
+      window.location.reload();
+    }
 
    function viewSource() {
      document.getElementById("sourceCode").textContent = document.documentElement.outerHTML;
@@ -835,24 +795,102 @@ function setURL(smiles) {
    function showError(e) {
    document.getElementById("error").textContent = e.toString();
  }
- function clearError() {
-   document.getElementById("error").textContent = "";
- }
+  function clearError() {
+    document.getElementById("error").textContent = "";
+  }
 
- /* Drag & drop */
- const drop = document.getElementById("drop");
- drop.ondragover = e => { e.preventDefault(); drop.style.borderColor = "var(--accent)"; };
- drop.ondragleave = () => drop.style.borderColor = "var(--border)";
- drop.ondrop = e => {
-   e.preventDefault();
-   drop.style.borderColor = "var(--border)";
-   const f = e.dataTransfer.files[0];
-   if (!f) return;
-   const r = new FileReader();
-   r.onload = () => { document.getElementById("input").value = r.result; process(); };
-    r.readAsText(f);
-  };
- </script>
+  const drop = document.getElementById("drop");
+  drop.ondragover = e => { e.preventDefault(); drop.style.borderColor = "var(--accent)"; };
+  drop.ondragleave = () => drop.style.borderColor = "var(--border)";
+  drop.ondrop = e => {
+    e.preventDefault();
+    drop.style.borderColor = "var(--border)";
+    const f = e.dataTransfer.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => { document.getElementById("input").value = r.result; process(); };
+     r.readAsText(f);
+   };
+
+  let jsmeInstance = null;
+  let jsmeModalOpen = false;
+  let moleculeToLoad = null;
+  let jsmeInitialized = false;
+
+  function createJSME() {
+    if (jsmeInitialized) return;
+
+    if (typeof JSApplet !== 'undefined') {
+      jsmeInstance = new JSApplet.JSME("jsme_container", "100%", "100%", {
+        "options": "star,query"
+      });
+      jsmeInitialized = true;
+
+      if (jsmeModalOpen && moleculeToLoad) {
+        setTimeout(() => {
+          if (jsmeInstance && moleculeToLoad) {
+            jsmeInstance.readGenericMolecularInput(moleculeToLoad);
+            setTimeout(() => {
+              if (jsmeInstance) {
+                jsmeInstance.deferredRepaint();
+              }
+            }, 200);
+          }
+        }, 300);
+      }
+    }
+  }
+
+  function openJSME() {
+    document.getElementById("jsmeModal").style.display = "block";
+    jsmeModalOpen = true;
+
+    const currentInput = document.getElementById("input").value;
+    moleculeToLoad = currentInput.trim();
+
+    if (moleculeToLoad && mol && mol.is_valid()) {
+      moleculeToLoad = mol.get_smiles();
+    }
+
+    if (!jsmeInitialized) {
+      const checkJSME = setInterval(() => {
+        if (typeof JSApplet !== 'undefined') {
+          clearInterval(checkJSME);
+          setTimeout(() => {
+            createJSME();
+          }, 200);
+        }
+      }, 100);
+      return;
+    }
+
+    if (jsmeInstance && moleculeToLoad) {
+      setTimeout(() => {
+        jsmeInstance.readGenericMolecularInput(moleculeToLoad);
+        setTimeout(() => {
+          jsmeInstance.deferredRepaint();
+        }, 100);
+      }, 200);
+    }
+  }
+
+  function closeJSME() {
+    document.getElementById("jsmeModal").style.display = "none";
+    jsmeModalOpen = false;
+    moleculeToLoad = null;
+  }
+
+  function applyJSME() {
+    if (jsmeInstance) {
+      const smiles = jsmeInstance.smiles();
+      if (smiles && smiles.trim()) {
+        document.getElementById("input").value = smiles;
+        process();
+      }
+    }
+    closeJSME();
+  }
+  </script>
 
 <script>
   document.getElementById("year").textContent = "2025-" + new Date().getFullYear();
@@ -864,11 +902,27 @@ function setURL(smiles) {
       <h2>HTML Source</h2>
       <div>
         <button class="copy-btn" onclick="copySource()">Copy</button>
-        <button onclick="closeSourceModal()">×</button>
+        <button class="close-btn" onclick="closeSourceModal()">×</button>
       </div>
     </div>
     <div class="modal-body">
       <pre id="sourceCode"></pre>
+    </div>
+  </div>
+</div>
+
+<div id="jsmeModal" class="modal">
+  <div class="modal-content" style="max-width: 1000px; height: 600px; display: flex; flex-direction: column;">
+    <div class="modal-header">
+      <h2>JSME Editor</h2>
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <button onclick="closeJSME()">Cancel</button>
+        <button class="primary" onclick="applyJSME()">Apply Edits</button>
+        <button class="close-btn" onclick="closeJSME()">×</button>
+      </div>
+    </div>
+    <div class="modal-body" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; flex: 1;">
+      <div id="jsme_container" style="width: 100%; height: 100%; flex: 1;"></div>
     </div>
   </div>
 </div>
