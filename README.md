@@ -112,7 +112,7 @@ If you reference Molecule Clipboard in academic work, documentation, or suppleme
 ```bibtex  
 @software{molecule_clipboard,  
   title        = {Molecule Clipboard: Browser-Based RDKit Molecule Inspector},  
-  author       = {Your Name},  
+  author       = {Ruibin Liu},  
   year         = {2025},  
   url          = {https://github.com/Ruibin-Liu/molecule-clipboard},  
   note         = {Local, no-upload molecular inspection using RDKit.js}  
