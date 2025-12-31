@@ -29,6 +29,7 @@ All computations are performed **locally in the browser** using **RDKit.js**, th
   - H‑bond donors / acceptors
   - Rotatable bonds
 - ✅ **Lipinski** and **Veber** rule evaluation  
+- ✅ **JSME molecular editor** for drawing and editing structures  
 - ✅ **Shareable URLs** encoding molecular state  
 - ✅ **Single‑file HTML** application (portable and offline‑capable)
 
@@ -63,6 +64,7 @@ Behavior and privacy guarantees remain identical.
 - Sanity‑checking a copied **SMILES** string
 - Converting molecular text into **canonical representations**
 - Inspecting basic **physicochemical properties**
+- Drawing and editing molecular structures with the integrated **JSME editor**
 - Sharing molecules via **URLs instead of files or screenshots**
 - Quick cheminformatics checks without a Python or RDKit environment
 
@@ -71,6 +73,7 @@ Behavior and privacy guarantees remain identical.
 ## 🧩 Technology Stack
 
 - **RDKit.js** (official minimal build)
+- **JSME** (JavaScript Molecular Editor)
 - WebAssembly (WASM)
 - Pure HTML / CSS / JavaScript
 - No build step or runtime dependencies
