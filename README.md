@@ -94,10 +94,11 @@ Behavior and privacy guarantees remain identical.
 
 This project is released under the MIT License to encourage reuse in both academic and industrial settings.
 
-It uses **RDKit**, which is licensed under the **BSD License**.
+It uses the following third-party libraries:
 
-- RDKit: https://www.rdkit.org  
-- RDKit.js: https://github.com/rdkit/rdkit-js
+- **RDKit**: BSD License - https://www.rdkit.org  
+- **RDKit.js**: BSD License - https://github.com/rdkit/rdkit-js
+- **JSME**: BSD License - http://peter-ertl.com/jsme/
 
 ---
 
