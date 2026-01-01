@@ -97,7 +97,7 @@ This project is released under the MIT License to encourage reuse in both academ
 It uses the following third-party libraries:
 
 - **RDKit.js**: BSD License - https://github.com/rdkit/rdkit-js
-- **JSME**: BSD License - http://peter-ertl.com/jsme/
+- **JSME**: BSD License - https://jsme-editor.github.io/
 
 ---
 
