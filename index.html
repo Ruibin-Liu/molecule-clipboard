@@ -465,14 +465,26 @@ details {
          </div>
        </div>
 
-     <div>
-       <strong>Properties</strong>
-       <table id="props"></table>
+      <div>
+        <strong>Properties</strong>
+        <table id="props"></table>
 
-       <br>
-       <strong>Rules</strong>
-       <table id="rules"></table>
-     </div>
+        <br>
+        <details>
+          <summary>More Properties</summary>
+          <table id="moreProps"></table>
+        </details>
+
+        <br>
+        <strong>Rules</strong>
+        <table id="rules"></table>
+
+        <br>
+        <details>
+          <summary>More Rules</summary>
+          <table id="moreRules"></table>
+        </details>
+      </div>
   </div>
 
    <div class="panel">
@@ -682,21 +694,84 @@ let rdkitModule = null;
      );
    });
 
-   const lipinski =
-     d.amw <= 500 &&
-     d.CrippenClogP <= 5 &&
-     d.NumHBD <= 5 &&
-     d.NumHBA <= 10;
+    const lipinski =
+      d.amw <= 500 &&
+      d.CrippenClogP <= 5 &&
+      d.NumHBD <= 5 &&
+      d.NumHBA <= 10;
 
-   const veber =
-     d.tpsa <= 140 &&
-     d.NumRotatableBonds <= 10;
+    const veber =
+      d.tpsa <= 140 &&
+      d.NumRotatableBonds <= 10;
 
     document.getElementById("rules").innerHTML = `
       <tr><td class="key">Lipinski</td><td class="value"><span class="result-badge ${lipinski?'pass':'fail'}">${lipinski?'Pass':'Fail'}</span></td></tr>
       <tr><td class="key">Veber</td><td class="value"><span class="result-badge ${veber?'pass':'fail'}">${veber?'Pass':'Fail'}</span></td></tr>
     `;
- }
+
+    const moreProps = [
+      ["Exact MW", d.exactmw.toFixed(2)],
+      ["Heavy Atoms", d.NumHeavyAtoms],
+      ["Heteroatoms", d.NumHeteroatoms],
+      ["Total Rings", d.NumRings],
+      ["Aromatic Rings", d.NumAromaticRings],
+      ["Aliphatic Rings", d.NumAliphaticRings],
+      ["Fsp3", d.FractionCSP3.toFixed(3)],
+      ["Labute ASA", d.labuteASA.toFixed(2)]
+    ];
+
+    document.getElementById("moreProps").innerHTML = "";
+    moreProps.forEach(([k, v]) => {
+      document.getElementById("moreProps").insertAdjacentHTML(
+        "beforeend",
+        `<tr><td class="key">${k}</td><td class="value">${v}</td></tr>`
+      );
+    });
+
+    const egan = d.tpsa <= 132;
+
+    const ghose =
+      d.amw >= 160 && d.amw <= 480 &&
+      d.CrippenClogP >= -0.4 && d.CrippenClogP <= 5.6 &&
+      d.NumRings >= 1 && d.NumRings <= 5 &&
+      d.NumAtoms >= 20 && d.NumAtoms <= 70 &&
+      d.NumHeteroatoms >= 2 && d.NumHeteroatoms <= 15;
+
+    const mce18 =
+      d.amw <= 450 &&
+      d.CrippenClogP <= 5.3 &&
+      d.tpsa <= 131 &&
+      d.NumHBD <= 3 &&
+      d.NumHBA <= 6 &&
+      d.NumRotatableBonds <= 9;
+
+    const reos =
+      d.CrippenClogP > 0 && d.CrippenClogP < 5 &&
+      d.amw < 500 &&
+      d.NumHBD < 4 &&
+      d.NumHBA < 9;
+
+    const alertHighLogP = d.CrippenClogP > 5;
+    const alertHighTPSA = d.tpsa > 140;
+    const alertTooFlexible = d.NumRotatableBonds > 10;
+    const alertLowFsp3 = d.FractionCSP3 < 0.25;
+    const alertTooManyRings = d.NumRings > 5;
+    const alertStereo = d.NumAtomStereoCenters > 3;
+
+    document.getElementById("moreRules").innerHTML = `
+      <tr><td class="key">Egan's Rule</td><td class="value"><span class="result-badge ${egan?'pass':'fail'}">${egan?'Pass':'Fail'}</span></td></tr>
+      <tr><td class="key">Ghose Filter</td><td class="value"><span class="result-badge ${ghose?'pass':'fail'}">${ghose?'Pass':'Fail'}</span></td></tr>
+      <tr><td class="key">MCE-18 Filter</td><td class="value"><span class="result-badge ${mce18?'pass':'fail'}">${mce18?'Pass':'Fail'}</span></td></tr>
+      <tr><td class="key">REOS Filter</td><td class="value"><span class="result-badge ${reos?'pass':'fail'}">${reos?'Pass':'Fail'}</span></td></tr>
+      <tr><td class="key" colspan="2" style="background:#fef3c7; padding: 4px;"><strong>Property Alerts</strong></td></tr>
+      <tr><td class="key">High LogP (>5)</td><td class="value"><span class="result-badge ${alertHighLogP?'fail':'pass'}">${alertHighLogP?'Alert':'OK'}</span></td></tr>
+      <tr><td class="key">High TPSA (>140)</td><td class="value"><span class="result-badge ${alertHighTPSA?'fail':'pass'}">${alertHighTPSA?'Alert':'OK'}</span></td></tr>
+      <tr><td class="key">Too Flexible (>10)</td><td class="value"><span class="result-badge ${alertTooFlexible?'fail':'pass'}">${alertTooFlexible?'Alert':'OK'}</span></td></tr>
+      <tr><td class="key">Low Fsp3 (<0.25)</td><td class="value"><span class="result-badge ${alertLowFsp3?'fail':'pass'}">${alertLowFsp3?'Alert':'OK'}</span></td></tr>
+      <tr><td class="key">Too Many Rings (>5)</td><td class="value"><span class="result-badge ${alertTooManyRings?'fail':'pass'}">${alertTooManyRings?'Alert':'OK'}</span></td></tr>
+      <tr><td class="key">Complex Stereo (>3)</td><td class="value"><span class="result-badge ${alertStereo?'fail':'pass'}">${alertStereo?'Alert':'OK'}</span></td></tr>
+    `;
+  }
 
   function copy(id) {
     const text = document.getElementById(id).textContent;
