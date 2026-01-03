@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>RDKit.js SVG Rendering Options</title>
+</head>
+<body>
+  <h1>RDKit.js SVG Rendering Options</h1>
+  <p>Test different SVG rendering options to find legend/label support</p>
+
+  <button onclick="testBasicSVG()">Test Basic get_svg()</button>
+  <br><br>
+  <button onclick="testSVGWithOptions()">Test get_svg_with_highlights()</button>
+  <br><br>
+  <button onclick="testCanvas()">Test Canvas Rendering</button>
+  <br><br>
+
+  <label>Enter SMILES:</label>
+  <input type="text" id="input" value="CC(=O)OC1=CC(=O)O" style="width: 400px;">
+  <br><br>
+  <label>Compound Name:</label>
+  <input type="text" id="compoundName" value="Aspirin" style="width: 400px;">
+
+  <h2>Results</h2>
+  <div id="output"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@rdkit/rdkit/dist/RDKit_minimal.js"></script>
+  <script>
+    let rdkit = null;
+
+    async function init() {
+      rdkit = await initRDKitModule();
+      document.getElementById("output").textContent = "RDKit loaded successfully!\n\nClick buttons to test different rendering methods.";
+    }
+
+    function testBasicSVG() {
+      const smiles = document.getElementById("input").value;
+      const mol = rdkit.get_mol(smiles);
+      if (!mol || !mol.is_valid()) {
+        alert("Unable to parse SMILES");
+        return;
+      }
+
+      const svg = mol.get_svg();
+      document.getElementById("output").innerHTML = `
+        <h3>Basic get_svg()</h3>
+        <div style="border: 1px solid #ccc; padding: 20px; background: #f9f9f9;">
+          ${svg}
+        </div>
+        <p>SVG length: ${svg.length} characters</p>
+      `;
+      mol.delete();
+    }
+
+    function testSVGWithOptions() {
+      const smiles = document.getElementById("input").value;
+      const mol = rdkit.get_mol(smiles);
+      if (!mol || !mol.is_valid()) {
+        alert("Unable to parse SMILES");
+        return;
+      }
+
+      // Try with empty options
+      const svg1 = mol.get_svg_with_highlights({});
+
+      // Try with various options
+      const svg2 = mol.get_svg_with_highlights({
+        "width": 400,
+        "height": 400,
+        "bondLineWidth": 2,
+        "legend": true  // This might be a valid option!
+      });
+
+      const name = document.getElementById("compoundName").value;
+      const svg3 = mol.get_svg_with_highlights({
+        "legend": name,  // Try passing name as legend
+        "legendPosition": "bottom"
+      });
+
+      document.getElementById("output").innerHTML = `
+        <h3>get_svg_with_highlights() - Empty Options</h3>
+        <div style="border: 1px solid #ccc; padding: 20px; background: #f9f9f9;">
+          ${svg1}
+        </div>
+        <p>SVG length: ${svg1.length} characters</p>
+
+        <h3>get_svg_with_highlights() - With legend: true</h3>
+        <div style="border: 1px solid #ccc; padding: 20px; background: #f9f9f9;">
+          ${svg2}
+        </div>
+        <p>SVG length: ${svg2.length} characters</p>
+
+        <h3>get_svg_with_highlights() - With legend: "${name}"</h3>
+        <div style="border: 1px solid #ccc; padding: 20px; background: #f9f9f9;">
+          ${svg3}
+        </div>
+        <p>SVG length: ${svg3.length} characters</p>
+      `;
+      mol.delete();
+    }
+
+    function testCanvas() {
+      const smiles = document.getElementById("input").value;
+      const mol = rdkit.get_mol(smiles);
+      if (!mol || !mol.is_valid()) {
+        alert("Unable to parse SMILES");
+        return;
+      }
+
+      // Try canvas rendering
+      const canvas = document.createElement('canvas');
+      canvas.width = 400;
+      canvas.height = 400;
+
+      const name = document.getElementById("compoundName").value;
+      try {
+        mol.draw_to_canvas(canvas, {
+          "legend": name,
+          "legendPosition": "bottom"
+        });
+
+        document.getElementById("output").innerHTML = `
+          <h3>Canvas Rendering - With legend: "${name}"</h3>
+          <div style="border: 1px solid #ccc; padding: 20px; background: #f9f9f9;">
+            ${canvas.outerHTML}
+          </div>
+        `;
+      } catch (e) {
+        document.getElementById("output").innerHTML = `
+          <h3>Canvas Rendering Error</h3>
+          <p>${e.message}</p>
+        `;
+      }
+      mol.delete();
+    }
+
+    init();
+  </script>
+</body>
+</html>
