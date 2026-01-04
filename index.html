@@ -161,15 +161,19 @@
    font-weight: 600;
  }
 
-  .modal-header .close-btn {
-     background: none;
-     border: none;
-     font-size: 1.5rem;
-     cursor: pointer;
-     padding: 0 0.5rem;
-     line-height: 1;
-     color: var(--text);
-  }
+   .modal-header .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0 0.5rem;
+      line-height: 1;
+      color: var(--text);
+   }
+
+   .modal-header .action-btn {
+      font-size: 0.85rem;
+   }
 
  .modal-header .copy-btn {
     background: var(--accent);
@@ -280,11 +284,42 @@ textarea:focus {
     border-color: #22c55e;
   }
 
+  #historyList > div {
+    position: relative;
+  }
+
   #historyList > div:hover {
     background: #f8fafc;
     border-color: var(--accent);
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .history-item-delete {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    color: var(--muted);
+  }
+
+  #historyList > div:hover .history-item-delete {
+    opacity: 1;
+  }
+
+  .history-item-delete:hover {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+
+  #historyList > div > div {
+    padding-right: 1.5rem;
   }
 
   .action-buttons {
@@ -353,6 +388,17 @@ textarea:focus {
   .action-btn.history:hover {
     background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
     border-color: #16a34a;
+  }
+
+  .action-btn.export {
+    background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%);
+    border-color: #eab308;
+    color: #ca8a04;
+  }
+
+  .action-btn.export:hover {
+    background: linear-gradient(135deg, #fef08a 0%, #fde047 100%);
+    border-color: #ca8a04;
   }
 
   .drop {
@@ -1224,6 +1270,12 @@ let rdkitModule = null;
     } else {
       historyList.innerHTML = compoundHistory.map((compound, index) => `
         <div style="border: 1px solid var(--border); border-radius: 8px; padding: 1rem; cursor: pointer; transition: all 0.15s ease;" onclick="loadFromHistory(${index})">
+          <button class="history-item-delete" onclick="event.stopPropagation(); deleteFromHistory(${index})" title="Delete from history">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
             <div>
               <strong style="display: block; margin-bottom: 0.25rem;">${compound.name}</strong>
@@ -1244,6 +1296,156 @@ let rdkitModule = null;
     document.getElementById('historyModal').style.display = 'none';
   }
 
+  async function exportHistoryToCSV() {
+    if (compoundHistory.length === 0) {
+      alert('No history to export.');
+      return;
+    }
+
+    const headers = [
+      'Name',
+      'SMILES',
+      'InChI',
+      'InChIKey',
+      'MW',
+      'cLogP',
+      'TPSA',
+      'HBD',
+      'HBA',
+      'RotB',
+      'Exact MW',
+      'Heavy Atoms',
+      'Heteroatoms',
+      'Total Rings',
+      'Aromatic Rings',
+      'Aliphatic Rings',
+      'Fsp3',
+      'Labute ASA',
+      'Lipinski',
+      'Veber',
+      'Egan',
+      'Ghose',
+      'MCE-18',
+      'REOS',
+      'High LogP',
+      'High TPSA',
+      'Too Flexible',
+      'Low Fsp3',
+      'Too Many Rings',
+      'Complex Stereo',
+      'Timestamp'
+    ];
+
+    let csvContent = headers.join(',') + '\n';
+
+    for (const compound of compoundHistory) {
+      try {
+        const m = rdkitModule.get_mol(compound.smiles);
+        if (!m || !m.is_valid()) {
+          csvContent += compound.name + ',ERROR,,,,,,,,,,,,,,,,,,,,,,,,,,,' + compound.timestamp + '\n';
+          continue;
+        }
+
+        const inchi = m.get_inchi();
+        const inchikey = rdkitModule.get_inchikey_for_inchi(inchi);
+        const d = JSON.parse(m.get_descriptors());
+
+        const lipinski =
+          d.amw <= 500 &&
+          d.CrippenClogP <= 5 &&
+          d.NumHBD <= 5 &&
+          d.NumHBA <= 10;
+
+        const veber =
+          d.tpsa <= 140 &&
+          d.NumRotatableBonds <= 10;
+
+        const egan = d.tpsa <= 132;
+
+        const ghose =
+          d.amw >= 160 && d.amw <= 480 &&
+          d.CrippenClogP >= -0.4 && d.CrippenClogP <= 5.6 &&
+          d.NumRings >= 1 && d.NumRings <= 5 &&
+          d.NumAtoms >= 20 && d.NumAtoms <= 70 &&
+          d.NumHeteroatoms >= 2 && d.NumHeteroatoms <= 15;
+
+        const mce18 =
+          d.amw <= 450 &&
+          d.CrippenClogP <= 5.3 &&
+          d.tpsa <= 131 &&
+          d.NumHBD <= 3 &&
+          d.NumHBA <= 6 &&
+          d.NumRotatableBonds <= 9;
+
+        const reos =
+          d.CrippenClogP > 0 && d.CrippenClogP < 5 &&
+          d.amw < 500 &&
+          d.NumHBD < 4 &&
+          d.NumHBA < 9;
+
+        const alertHighLogP = d.CrippenClogP > 5;
+        const alertHighTPSA = d.tpsa > 140;
+        const alertTooFlexible = d.NumRotatableBonds > 10;
+        const alertLowFsp3 = d.FractionCSP3 < 0.25;
+        const alertTooManyRings = d.NumRings > 5;
+        const alertStereo = d.NumAtomStereoCenters > 3;
+
+        const row = [
+          compound.name,
+          compound.smiles,
+          inchi,
+          inchikey,
+          d.amw.toFixed(2),
+          d.CrippenClogP.toFixed(2),
+          d.tpsa.toFixed(2),
+          d.NumHBD,
+          d.NumHBA,
+          d.NumRotatableBonds,
+          d.exactmw.toFixed(2),
+          d.NumHeavyAtoms,
+          d.NumHeteroatoms,
+          d.NumRings,
+          d.NumAromaticRings,
+          d.NumAliphaticRings,
+          d.FractionCSP3.toFixed(3),
+          d.labuteASA.toFixed(2),
+          lipinski ? 'Pass' : 'Fail',
+          veber ? 'Pass' : 'Fail',
+          egan ? 'Pass' : 'Fail',
+          ghose ? 'Pass' : 'Fail',
+          mce18 ? 'Pass' : 'Fail',
+          reos ? 'Pass' : 'Fail',
+          alertHighLogP ? 'Alert' : 'OK',
+          alertHighTPSA ? 'Alert' : 'OK',
+          alertTooFlexible ? 'Alert' : 'OK',
+          alertLowFsp3 ? 'Alert' : 'OK',
+          alertTooManyRings ? 'Alert' : 'OK',
+          alertStereo ? 'Alert' : 'OK',
+          compound.timestamp
+        ].map(field => {
+          const s = String(field);
+          if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+            return '"' + s.replace(/"/g, '""') + '"';
+          }
+          return s;
+        }).join(',');
+
+        csvContent += row + '\n';
+        m.delete();
+      } catch (e) {
+        csvContent += compound.name + ',ERROR,,,,,,,,,,,,,,,,,,,,,,,,,,,' + compound.timestamp + '\n';
+      }
+    }
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'molecule_history_' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function loadFromHistory(index) {
     const compound = compoundHistory[index];
     if (compound) {
@@ -1251,6 +1453,14 @@ let rdkitModule = null;
       document.getElementById("input").value = inputValue;
       process();
       closeHistoryModal();
+    }
+  }
+
+  function deleteFromHistory(index) {
+    if (index >= 0 && index < compoundHistory.length) {
+      compoundHistory.splice(index, 1);
+      saveHistory();
+      showHistory();
     }
   }
 
@@ -1302,7 +1512,15 @@ let rdkitModule = null;
   <div class="modal-content">
     <div class="modal-header">
       <h2>History</h2>
-      <div>
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <button onclick="exportHistoryToCSV()" class="action-btn export">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7,10 12,15 17,10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Export CSV
+        </button>
         <button onclick="clearHistory()" class="action-btn clear">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="3,6 5,6 21,6"/>
