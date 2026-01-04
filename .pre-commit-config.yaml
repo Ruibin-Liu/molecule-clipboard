@@ -7,8 +7,4 @@
     - id: check-json
     - id: check-added-large-files
 
-- repo: github.com # Example HTML linter repo
-  rev: 0.1.0 # Replace with a specific, stable revision/tag
-  hooks:
-    - id: html-linter
-      files: \.html$ # Target only HTML files
+
