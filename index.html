@@ -274,11 +274,86 @@ textarea:focus {
    cursor: not-allowed;
  }
 
- button.copied {
-   background: #22c55e;
-   color: #fff;
-   border-color: #22c55e;
- }
+  button.copied {
+    background: #22c55e;
+    color: #fff;
+    border-color: #22c55e;
+  }
+
+  #historyList > div:hover {
+    background: #f8fafc;
+    border-color: var(--accent);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    width: 110px;
+  }
+
+  .action-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .action-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+
+  .action-btn:active {
+    transform: translateY(0);
+  }
+
+  .action-btn.edit {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-color: #3b82f6;
+    color: #1d4ed8;
+  }
+
+  .action-btn.edit:hover {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border-color: #2563eb;
+  }
+
+  .action-btn.clear {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border-color: #ef4444;
+    color: #dc2626;
+  }
+
+  .action-btn.clear:hover {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    border-color: #dc2626;
+  }
+
+  .action-btn.history {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border-color: #22c55e;
+    color: #16a34a;
+  }
+
+  .action-btn.history:hover {
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    border-color: #16a34a;
+  }
 
   .drop {
    margin-top: 0.75rem;
@@ -413,14 +488,32 @@ details {
 
   <div class="separator">-- or --</div>
 
-  <div class="drop" id="drop">
-    Drag & drop MOL / SDF / TXT files here
-  </div>
-
-   <div style="display: flex; gap: 0.5rem;">
-     <button onclick="openJSME()" style="color: #2563eb; border-color: #2563eb;">Draw/Edit</button>
-     <button onclick="clearAll()" style="color: #b91c1c; border-color: #b91c1c;">Clear</button>
+   <div class="drop" id="drop">
+     Drag & drop MOL / SDF / TXT files here
    </div>
+
+     <div class="action-buttons">
+      <button onclick="openJSME()" class="action-btn edit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+        </svg>
+        Draw/Edit
+      </button>
+      <button onclick="clearAll()" class="action-btn clear">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3,6 5,6 21,6"/>
+          <path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2v2"/>
+        </svg>
+        Clear
+      </button>
+      <button onclick="showHistory()" class="action-btn history">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12,6 12,12 16,14"/>
+        </svg>
+        History
+      </button>
+    </div>
 
   <div id="error"></div>
 </div>
@@ -528,27 +621,29 @@ details {
 <script>
 let rdkitModule = null;
 
-  async function initRDKit() {
-    try {
-      rdkitModule = await initRDKitModule();
-      displayVersion();
-      loadFromURL();
-      setupAutoProcess();
-    } catch(e) {
-      document.getElementById("error").textContent = "Failed to load RDKit: " + e;
-    }
-  }
+   async function initRDKit() {
+     try {
+       rdkitModule = await initRDKitModule();
+       displayVersion();
+       loadFromURL();
+       setupAutoProcess();
+       loadHistory();
+     } catch(e) {
+       document.getElementById("error").textContent = "Failed to load RDKit: " + e;
+     }
+   }
 
-  let debounceTimer;
-  function setupAutoProcess() {
-    const input = document.getElementById("input");
-    input.addEventListener("input", () => {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        process(true);
-      }, 500);
-    });
-  }
+   function setupAutoProcess() {
+     const input = document.getElementById("input");
+     input.addEventListener("blur", () => {
+       process(true);
+     });
+     input.addEventListener("keydown", (e) => {
+       if (e.key === "Enter") {
+         process(true);
+       }
+     });
+   }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@rdkit/rdkit/dist/RDKit_minimal.js"></script>
 <script>initRDKit();</script>
@@ -556,36 +651,37 @@ let rdkitModule = null;
 <script>
  let mol = null;
 
-  function process(updateURL = true) {
-    clearError();
-    try {
-      let input = document.getElementById("input").value;
-      if (!input.trim()) throw "Empty input";
+   function process(updateURL = true) {
+     clearError();
+     try {
+       let input = document.getElementById("input").value;
+       if (!input.trim()) throw "Empty input";
 
-      const name = extractCompoundName(input);
+       const name = extractCompoundName(input);
 
-      if (mol) mol.delete();
-      mol = rdkitModule.get_mol(input);
-      if (!mol || !mol.is_valid()) throw "Unable to parse molecule";
+       if (mol) mol.delete();
+       mol = rdkitModule.get_mol(input);
+       if (!mol || !mol.is_valid()) throw "Unable to parse molecule";
 
-      const smiles = mol.get_smiles();
-      mol.delete();
+       const smiles = mol.get_smiles();
+       mol.delete();
 
-      mol = rdkitModule.get_mol(smiles);
-      if (!mol || !mol.is_valid()) throw "Unable to generate 2D structure";
+       mol = rdkitModule.get_mol(smiles);
+       if (!mol || !mol.is_valid()) throw "Unable to generate 2D structure";
 
-       render(mol, name);
-       if (updateURL) setURL(smiles, name);
-    } catch (e) {
-      showError(e);
-    }
-  }
+        render(mol, name);
+        if (updateURL) setURL(smiles, name);
+        addToHistory(smiles, name);
+     } catch (e) {
+       showError(e);
+     }
+   }
 
   function displayVersion() {
     document.getElementById("rdkitVersion").textContent = rdkitModule.version();
   }
 
-  function extractCompoundName(input) {
+   function extractCompoundName(input) {
     let trimmedInput = input.trim();
 
     if (trimmedInput.includes('\n') || trimmedInput.includes('V2000') || trimmedInput.includes('V3000')) {
@@ -617,7 +713,25 @@ let rdkitModule = null;
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
-    return `MC-${year}${month}${day}-1`;
+    const dateStr = `${year}${month}${day}`;
+
+    const counter = getNextCounter(dateStr);
+    return `MC-${dateStr}-${counter}`;
+  }
+
+  function getNextCounter(dateStr) {
+    const key = 'compoundNameCounters';
+    const saved = localStorage.getItem(key);
+    const counters = saved ? JSON.parse(saved) : {};
+
+    if (!counters[dateStr]) {
+      counters[dateStr] = 0;
+    }
+
+    counters[dateStr]++;
+    localStorage.setItem(key, JSON.stringify(counters));
+
+    return counters[dateStr];
   }
 
   function render(m, name) {
@@ -1059,15 +1173,93 @@ let rdkitModule = null;
    }
 
   function applyJSME() {
-     if (jsmeInstance) {
-       const smiles = jsmeInstance.smiles();
-       if (smiles && smiles.trim()) {
-         const inputValue = originalName ? smiles + " " + originalName : smiles;
-         document.getElementById("input").value = inputValue;
-         process();
-       }
-     }
-     closeJSME();
+      if (jsmeInstance) {
+        const smiles = jsmeInstance.smiles();
+        if (smiles && smiles.trim()) {
+          const inputValue = originalName ? smiles + " " + originalName : smiles;
+          document.getElementById("input").value = inputValue;
+          process();
+        }
+      }
+      closeJSME();
+  }
+
+  let compoundHistory = [];
+
+  function loadHistory() {
+    const saved = localStorage.getItem('compoundHistory');
+    if (saved) {
+      try {
+        compoundHistory = JSON.parse(saved);
+      } catch (e) {
+        compoundHistory = [];
+      }
+    }
+  }
+
+  function saveHistory() {
+    localStorage.setItem('compoundHistory', JSON.stringify(compoundHistory));
+  }
+
+  function addToHistory(smiles, name) {
+    const now = new Date();
+    const timestamp = now.toLocaleString();
+
+    compoundHistory = compoundHistory.filter(c => c.smiles !== smiles);
+    compoundHistory.unshift({ smiles, name, timestamp });
+
+    if (compoundHistory.length > 50) {
+      compoundHistory = compoundHistory.slice(0, 50);
+    }
+
+    saveHistory();
+  }
+
+  function showHistory() {
+    loadHistory();
+    const historyList = document.getElementById('historyList');
+
+    if (compoundHistory.length === 0) {
+      historyList.innerHTML = '<p style="color: var(--muted); text-align: center; padding: 2rem;">No history yet. Process some compounds to see them here.</p>';
+    } else {
+      historyList.innerHTML = compoundHistory.map((compound, index) => `
+        <div style="border: 1px solid var(--border); border-radius: 8px; padding: 1rem; cursor: pointer; transition: all 0.15s ease;" onclick="loadFromHistory(${index})">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+            <div>
+              <strong style="display: block; margin-bottom: 0.25rem;">${compound.name}</strong>
+              <code style="font-size: 0.8rem; color: var(--muted);">${compound.smiles}</code>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--muted); text-align: right;">
+              ${compound.timestamp}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('historyModal').style.display = 'block';
+  }
+
+  function closeHistoryModal() {
+    document.getElementById('historyModal').style.display = 'none';
+  }
+
+  function loadFromHistory(index) {
+    const compound = compoundHistory[index];
+    if (compound) {
+      const inputValue = compound.name ? compound.smiles + " " + compound.name : compound.smiles;
+      document.getElementById("input").value = inputValue;
+      process();
+      closeHistoryModal();
+    }
+  }
+
+  function clearHistory() {
+    if (confirm('Are you sure you want to clear all history?')) {
+      compoundHistory = [];
+      saveHistory();
+      showHistory();
+    }
   }
   </script>
 
@@ -1102,6 +1294,27 @@ let rdkitModule = null;
     </div>
     <div class="modal-body" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; flex: 1;">
       <div id="jsme_container" style="width: 100%; height: 100%; flex: 1;"></div>
+    </div>
+  </div>
+</div>
+
+<div id="historyModal" class="modal" onclick="if(event.target === this) closeHistoryModal()">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>History</h2>
+      <div>
+        <button onclick="clearHistory()" class="action-btn clear">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3,6 5,6 21,6"/>
+            <path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2v2"/>
+          </svg>
+          Clear History
+        </button>
+        <button class="close-btn" onclick="closeHistoryModal()">×</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div id="historyList" style="display: flex; flex-direction: column; gap: 1rem;"></div>
     </div>
   </div>
 </div>
